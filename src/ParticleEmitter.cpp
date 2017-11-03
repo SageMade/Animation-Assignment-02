@@ -81,7 +81,17 @@ void ParticleEmitter::update(float dt)
 				particle->position = Settings.Config.Position;
 
 				particle->size =  Math::lerpRange(Settings.Config.SizeRange, randomTval);
-				particle->velocity = Math::lerp(Settings.Config.MinVelocity, Settings.Config.MaxVelocity, glm::linearRand(0.0f, 1.0f));
+
+				switch (Settings.Config.VelocityType) {
+					case EmitterVelocityType::VelocityConeLine:
+						particle->velocity = glm::normalize(Math::lerp(Settings.Config.Velocity0, Settings.Config.Velocity1, glm::linearRand(0.0f, 1.0f)));
+						particle->velocity *= glm::linearRand(Settings.Config.VelocityRange.x, Settings.Config.VelocityRange.y);
+
+						break;
+					case EmitterVelocityType::VelocityBox:
+						particle->velocity = Math::lerp(Settings.Config.Velocity0, Settings.Config.Velocity1, glm::linearRand(0.0f, 1.0f));
+						break;
+				}
 			}
 			
 			// Update physics

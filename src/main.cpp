@@ -56,10 +56,10 @@ void InitializeScene()
 	LayerConfig config;
 
 	// Physics properties
-	config.MinVelocity   = glm::vec3(-120.0f,  120.0f, 0.0f);
-	config.MaxVelocity   = glm::vec3( 120.0f,  120.0f, 0.0f);
-	config.MassRange     = glm::vec2(0.5f, 0.75f);
-	config.Position      = mousePositionFlipped;
+	config.Velocity0   = glm::vec3(-120.0f,  120.0f, 0.0f);
+	config.Velocity1   = glm::vec3( 120.0f,  120.0f, 0.0f);
+	config.MassRange   = glm::vec2(0.5f, 0.75f);
+	config.Position    = mousePositionFlipped;
 
 	// Visuals
 	config.InitColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);

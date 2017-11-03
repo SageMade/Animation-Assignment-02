@@ -20,6 +20,11 @@ enum EmitterType {
 	Line     = 3,
 };
 
+enum EmitterVelocityType {
+	VelocityConeLine = 0,
+	VelocityBox      = 1
+};
+
 struct SteeringBehaviour {
 	SteeringMethod Method;
 	float          Weight;
@@ -34,8 +39,10 @@ struct LayerConfig {
 	glm::vec4   InitColor;
 	glm::vec4   FinalColor;
 
-	glm::vec3   MinVelocity;
-	glm::vec3   MaxVelocity;
+	EmitterVelocityType VelocityType;
+	glm::vec3           Velocity0;
+	glm::vec3           Velocity1;
+	glm::vec2           VelocityRange;
 
 	// Stores the range for initial particle life values
 	glm::vec2   LifeRange;
