@@ -20,7 +20,7 @@
 #include <TTK/GraphicsUtils.h>
 #include <TTK/Camera.h>
 #include "imgui/imgui.h"
-#include "imgui/imgui_bezier.h"
+#include "imgui/imgui_user.h"
 #include "GLM/glm.hpp"
 
 #include "TTK\Texture2D.h"
@@ -91,9 +91,32 @@ void InitializeScene()
 
 // These values are controlled by imgui
 bool applySeekingForce = true;
+bool followMouse = true;
 float seekingForceScale = 100.0f;
 float minSeekingForceScale = -200.0f;
 float maxSeekingForceScale = 200.0f; 
+char fileName[256];
+
+void SaveEffect(const char* fileName) {
+	if (fileName[0] != '\0') {
+		std::fstream stream;
+		stream.open(fileName);
+		particleEffect.WriteToFile(stream);
+		//particleEffect = ParticleEffect::ReadFromFile(stream);
+		stream.close();
+	}
+}
+
+void LoadEffect(const char* fileName) {
+	if (fileName[0] != '\0') {
+		std::fstream stream;
+		stream.open(fileName);
+		//particleEffect.WriteToFile(stream);
+		particleEffect = ParticleEffect::ReadFromFile(stream);
+		particleEffect.Init();
+		stream.close();
+	}
+}
 
 void applyForcesToParticleSystem(ParticleEmitter* e, glm::vec3 target)
 {
@@ -107,41 +130,166 @@ void applyForcesToParticleSystem(ParticleEmitter* e, glm::vec3 target)
 	}
 }
 
+void DisplayEditablePointList(std::vector<glm::vec3> &list) {
+	ImGui::Text("Path:");
+
+	for (int ix = 0; ix < list.size(); ix++) {
+		ImGui::PushID(ix);
+		ImGui::DragFloat3("", &list[ix][0]);
+		ImGui::SameLine();
+		if (ImGui::Button("-")) {
+			list.erase(list.begin() + ix);
+			ix--;
+			ImGui::PopID();
+			continue;
+		}
+		ImGui::PopID();
+	}
+
+	if (ImGui::Button("+")) {
+		list.push_back(glm::vec3());
+	}
+}
+
+void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
+	ImGui::InputText(" Name", behaviour.Name, BEHAVIOUR_NAME_SIZE);
+	ImGui::DragFloat(" Weight", &behaviour.Weight, 0.1f, 0.0f, 1.0f);
+	ImGui::Combo(" Method", (int*)&behaviour.Method, "None\0Seek\0Flee\0Repel\0Attract\0Path\0\0");
+
+	if (behaviour.Method != Unknown)
+		ImGui::Separator();
+
+	switch (behaviour.Method) {
+		case Seek: {
+			if (behaviour.MetaData == nullptr) {
+				behaviour.MetaData = new SeekFleeData();
+			}
+			SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(behaviour.MetaData);
+			ImGui::DragFloat3(" Point", &data.Point[0]);
+			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+		}
+		break;
+		case Flee: {
+			if (behaviour.MetaData == nullptr) {
+				behaviour.MetaData = new SeekFleeData();
+			}
+			SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(behaviour.MetaData);
+			ImGui::DragFloat3(" Point", &data.Point[0]);
+			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+
+		}
+		break;
+		case Repel: {
+			if (behaviour.MetaData == nullptr) {
+				behaviour.MetaData = new MagnetData();
+			}
+			MagnetData& data = *reinterpret_cast<MagnetData*>(behaviour.MetaData);
+			ImGui::DragFloat3(" Point", &data.Point[0]);
+			ImGui::DragFloat(" Point", &data.Force);
+			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+		}
+		break;
+		case Attract: {
+			if (behaviour.MetaData == nullptr) {
+				behaviour.MetaData = new MagnetData();
+			}
+			MagnetData& data = *reinterpret_cast<MagnetData*>(behaviour.MetaData);
+			ImGui::DragFloat3(" Point", &data.Point[0]);
+			ImGui::DragFloat(" Point", &data.Force);
+			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+		}
+		break;
+		case Path: {
+			if (behaviour.MetaData == nullptr) {
+				behaviour.MetaData = new PathData();
+			}
+			PathData& data = *reinterpret_cast<PathData*>(behaviour.MetaData);			
+			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+			ImGui::Combo(" Mode", (int*)&data.LoopMode, "Loop\0Reverse\0Stop\0\0");
+			DisplayEditablePointList(data.Points);
+		}
+		break;
+		default:
+			break;
+	}
+}
+
 void DisplayLayerConfig(ParticleLayerSettings& settings) {
 	static bool isWindowShowing = true;
 
 	if (ImGui::Begin("Layer Config", &isWindowShowing, ImGuiWindowFlags_::ImGuiWindowFlags_AlwaysAutoResize)) {
-		
-		ImGui::Text("Physics:");
-		ImGui::DragFloat3(" Position", &settings.Config.Position[0]);
-		ImGui::DragFloat3(" Gravity", &settings.Config.Gravity[0]);
-		ImGui::DragFloat(" Duration", &settings.Config.Duration);
-		ImGui::Combo(" Velocity Type", (int*)&settings.Config.VelocityType, "Cone/Line\0Box\0\0");
-		ImGui::DragFloat3(" Velocity 0", &settings.Config.Velocity0[0]);
-		ImGui::DragFloat3(" Velocity 1", &settings.Config.Velocity1[0]);
-		ImGui::DragFloat2(" Velocity Range", &settings.Config.VelocityRange[0]);
-		ImGui::DragFloat2(" Mass Range", &settings.Config.MassRange[0]);
 
-		ImGui::Separator();
-		ImGui::Text("Emission:");
-		ImGui::SliderFloat(" Emission Rate", &settings.Config.EmissionRate, 0, settings.Config.MaxParticles);
-		ImGui::DragFloat2(" Life Range", &settings.Config.LifeRange[0]);
-		ImGui::DragFloat2(" Size Range", &settings.Config.SizeRange[0]);
-		ImGui::Combo(" Emitter Type", (int*)&settings.Config.BoundsType, "Point\0Box\0Circle\0Line\0\0");
-		ImGui::DragFloat3(" Emitter Meta", &settings.Config.BoundsMeta[0]);
-		int maxPart = settings.Config.MaxParticles;
-		ImGui::DragInt(" Max Particles", &maxPart, 100, 5000);
-		settings.Config.MaxParticles = maxPart;
+		ImGui::BeginChild((ImGuiID)0, ImVec2(280, 1));
+		ImGui::EndChild();
 
-		// TODO: textures
+		if (ImGui::CollapsingHeader("Physics:")) {
+			ImGui::DragFloat3(" Position", &settings.Config.Position[0]);
+			ImGui::DragFloat3(" Gravity", &settings.Config.Gravity[0]);
+			ImGui::DragFloat(" Duration", &settings.Config.Duration);
+			ImGui::Combo(" Velocity Type", (int*)&settings.Config.VelocityType, "Cone/Line\0Box\0\0");
+			ImGui::DragFloat3(" Velocity 0", &settings.Config.Velocity0[0]);
+			ImGui::DragFloat3(" Velocity 1", &settings.Config.Velocity1[0]);
+			ImGui::DragFloat2(" Velocity Range", &settings.Config.VelocityRange[0]);
+			ImGui::DragFloat2(" Mass Range", &settings.Config.MassRange[0]);
+		}
 
-		ImGui::Separator();
-		ImGui::Text("Visuals:");
-		ImGui::ColorEdit4("Start Color", &settings.Config.InitColor[0]);
-		ImGui::ColorEdit4("Final Color", &settings.Config.FinalColor[0]);
-		ImGui::Checkbox(" Interpolate Color", &settings.Config.InterpolateColor);
-		ImGui::Combo(" Blend Mode", (int*)&settings.Config.BlendMode, "Multiply\0Additive\0\0");
-	
+		if (ImGui::CollapsingHeader("Emission:")) {
+			ImGui::SliderFloat(" Emission Rate", &settings.Config.EmissionRate, 0, settings.Config.MaxParticles);
+			ImGui::DragFloat2(" Life Range", &settings.Config.LifeRange[0]);
+			ImGui::DragFloat2(" Size Range", &settings.Config.SizeRange[0]);
+			ImGui::Combo(" Emitter Type", (int*)&settings.Config.BoundsType, "Point\0Box\0Circle\0Line\0\0");
+			ImGui::DragFloat3(" Emitter Meta", &settings.Config.BoundsMeta[0]);
+			int maxPart = settings.Config.MaxParticles;
+			ImGui::DragInt(" Max Particles", &maxPart, 100, 5000);
+			settings.Config.MaxParticles = maxPart;
+
+			// TODO: textures
+		}
+
+
+		if (ImGui::CollapsingHeader("Visuals:")) {
+			if (ImGui::TreeNode("Initial Color")) {
+				ImGui::ColorPicker("", &settings.Config.InitColor[0]);
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Final Color")) {
+				ImGui::ColorPicker("", &settings.Config.FinalColor[0]);
+				ImGui::TreePop();
+			}
+			ImGui::Checkbox(" Interpolate Color", &settings.Config.InterpolateColor);
+			ImGui::Combo(" Blend Mode", (int*)&settings.Config.BlendMode, "Multiply\0Additive\0\0");
+		}
+
+		if (ImGui::CollapsingHeader("Behaviours:")) {
+			ImGui::Text("Add new: ");
+			ImGui::SameLine();
+			ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.0f));
+			ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
+			if (ImGui::Button("+")) {
+				SteeringBehaviour toAdd = SteeringBehaviour();
+				sprintf(toAdd.Name, "Behaviour %i", settings.Behaviours.size());
+				settings.Behaviours.push_back(toAdd);
+			}
+			ImGui::PopStyleColor(2);
+			ImGui::PopStyleVar(1);
+
+			for (int ix = 0; ix < settings.Behaviours.size(); ix++) {
+				ImGui::Separator();
+				if (ImGui::TreeNode(settings.Behaviours[ix].Name)) {
+					if (ImGui::Button("Remove")) {
+						settings.Behaviours.erase(settings.Behaviours.begin() + ix);
+						ix--;
+						ImGui::PopID();
+						continue;
+					}
+					ImGui::Separator();
+					DisplaySteeringBehaviour(settings.Behaviours[ix]);
+					ImGui::TreePop();
+				}
+			}
+		}
+
 		ImGui::End();
 	}
 }
@@ -193,6 +341,8 @@ void DisplayCallbackFunction(void)
 
 	//ImGui::Checkbox("Playback Enabled", &emitter.playing);
 	ImGui::Checkbox("Toggle steering force", &applySeekingForce);
+	ImGui::Checkbox("Follow Mouse", &followMouse);
+	ImGui::DragFloat3("Effect Pos", &particleEffect.Origin[0]);
 
 	// Color control
 	// Tip: You can click and drag the numbers in the UI to change them
@@ -203,6 +353,14 @@ void DisplayCallbackFunction(void)
 	// As you drag the slider the variable passed by reference gets modified
 	if (applySeekingForce)
 		ImGui::SliderFloat("Slider", &seekingForceScale, minSeekingForceScale, maxSeekingForceScale);
+
+	ImGui::InputText("path", fileName, 256);
+	if (ImGui::Button("Save")) {
+		SaveEffect(fileName);
+	}
+	if (ImGui::Button("Load")) {
+		LoadEffect(fileName);
+	}
 
 	// imgui has TONS of UI functions
 	// Uncomment these two lines if you want to see a full imgui demo
@@ -234,6 +392,9 @@ void KeyboardCallbackFunction(unsigned char key, int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.KeysDown[key] = true;
+	io.KeyMap[ImGuiKey_Backspace] = '\b';
+	
+	io.AddInputCharacter(key);
 
 	switch (key)
 	{
@@ -256,6 +417,7 @@ void KeyboardUpCallbackFunction(unsigned char key, int x, int y)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.KeysDown[key] = false;
+	io.KeyMap[ImGuiKey_Backspace] = '\b';
 
 	switch (key)
 	{
@@ -358,7 +520,8 @@ void MousePassiveMotionCallbackFunction(int x, int y)
 	mousePositionFlipped.x = x;
 	mousePositionFlipped.y = windowHeight - y;
 
-	particleEffect.Origin = mousePositionFlipped;
+	if (followMouse)
+		particleEffect.Origin = mousePositionFlipped;
 }
 
 /* function main()

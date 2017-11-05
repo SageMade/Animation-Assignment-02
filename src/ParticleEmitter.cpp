@@ -104,6 +104,7 @@ void ParticleEmitter::update(float dt, glm::vec3 origin)
 			}
 			
 			// Update physics
+			particle->force += Settings.Config.Gravity;
 
 			// Update acceleration (basic Newtonian physics)
 			particle->acceleration = particle->force / particle->mass;

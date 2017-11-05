@@ -9,6 +9,7 @@
 #include <fstream>
 
 #define MAX_PARTICLES_PER_LAYER 500
+#define BEHAVIOUR_NAME_SIZE 16
 
 enum SteeringMethod {
 	Unknown  = 0,
@@ -36,11 +37,43 @@ enum ParticleBlend {
 	BlendAdditive  = 1
 };
 
+enum LoopType {
+	LoopTypeLoop    = 0,
+	LoopTypeReverse = 1,
+	LoopTypeStop    = 2
+};
+
+struct SeekFleeData {
+	glm::vec3 Point;
+	bool      LocalSpace;
+};
+
+struct MagnetData {
+	glm::vec3 Point;
+	float     Force;
+	bool      LocalSpace;
+};
+
+struct PathData {
+	std::vector<glm::vec3> Points;
+	bool                   LocalSpace;
+	LoopType               LoopMode;
+};
+
 struct SteeringBehaviour {
 	SteeringMethod Method;
 	float          Weight;
 	uint32_t       MetaSize;
 	void*          MetaData;
+	char           Name[BEHAVIOUR_NAME_SIZE];
+
+	SteeringBehaviour() : 
+		Method(SteeringMethod::Unknown), 
+		Weight(1.0f), 
+		MetaSize(0), 
+		MetaData(nullptr) {
+		memset(Name, '\0', BEHAVIOUR_NAME_SIZE);
+	}
 
 	template <typename T>
 	void SetData(T *data) {

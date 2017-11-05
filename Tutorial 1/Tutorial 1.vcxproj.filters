@@ -137,5 +137,8 @@
     <ClInclude Include="..\src\TextureCollection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\imgui\imgui_color.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

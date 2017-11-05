@@ -178,6 +178,7 @@
     <ClInclude Include="..\include\GameObject.h" />
     <ClInclude Include="..\include\imgui\imgui.h" />
     <ClInclude Include="..\include\imgui\imgui_bezier.h" />
+    <ClInclude Include="..\include\imgui\imgui_color.h" />
     <ClInclude Include="..\include\imgui\imgui_impl.h" />
     <ClInclude Include="..\include\imgui\imgui_internal.h" />
     <ClInclude Include="..\include\imgui\imgui_user.h" />
