@@ -23,6 +23,9 @@ namespace TTK
 	{
 	public:
 
+		static uint32_t ScreenWidth;
+		static uint32_t ScreenHeight;
+
 		// This must be called once during initialization
 		static void InitImGUI();
 
@@ -96,7 +99,8 @@ namespace TTK
 		static void EndPointSprites();
 
 		// Enables alpha blending
-		static void EnableAlpha();
+		static void EnableAlphaBlend();
+		static void EnableAdditiveBlend();
 
 		// Description:
 		// Sets the colour of the screen after ClearScreen() has been called.

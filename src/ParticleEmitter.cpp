@@ -5,7 +5,7 @@
 
 #include "AnimationMath.h"
 #include "ParticleEmitter.h"
-
+#include "TextureCollection.h"
 
 glm::vec3 CalculateRandomConeNormal(glm::vec3 coneDir, float coneAngle) {
 	glm::vec3 result;
@@ -23,6 +23,14 @@ glm::vec3 CalculateRandomConeNormal(glm::vec3 coneDir, float coneAngle) {
 	return glm::normalize(result);
 }
 
+ParticleEmitter::ParticleEmitter(ParticleLayerSettings settings) :
+	m_pParticles(nullptr), 
+	m_pNumParticles(0), 
+	playing(true),
+	Settings(settings) {
+
+}
+
 ParticleEmitter::ParticleEmitter()
 	: m_pParticles(nullptr),
 	m_pNumParticles(0),
@@ -36,17 +44,17 @@ ParticleEmitter::~ParticleEmitter()
 	freeMemory();
 }
 
-void ParticleEmitter::initialize(unsigned int numParticles)
+void ParticleEmitter::initialize()
 {
 	freeMemory(); // destroy any existing particles
 
-	m_pParticleArraySize = numParticles;
+	m_pParticleArraySize = Settings.Config.MaxParticles;
 
-	if (numParticles > 0)
+	if (m_pParticleArraySize > 0)
 	{
-		m_pParticles = new Particle[numParticles];
-		memset(m_pParticles, 0, sizeof(Particle) * numParticles);
-		m_pNumParticles = numParticles;
+		m_pParticles = new Particle[m_pParticleArraySize];
+		memset(m_pParticles, 0, sizeof(Particle) * m_pParticleArraySize);
+		m_pNumParticles = m_pParticleArraySize;
 	}
 }
 
@@ -60,7 +68,7 @@ void ParticleEmitter::freeMemory()
 	}
 }
 
-void ParticleEmitter::update(float dt)
+void ParticleEmitter::update(float dt, glm::vec3 origin)
 {
 	if (m_pParticles && playing) // make sure memory is initialized and system is playing
 	{
@@ -78,14 +86,15 @@ void ParticleEmitter::update(float dt)
 				particle->life = Math::lerpRange(Settings.Config.LifeRange, randomTval);
 				particle->mass = Math::lerpRange(Settings.Config.MassRange, randomTval);
 
-				particle->position = Settings.Config.Position;
+				particle->position = Settings.Config.Position + origin;
 
 				particle->size =  Math::lerpRange(Settings.Config.SizeRange, randomTval);
 
 				switch (Settings.Config.VelocityType) {
+				    default:
 					case EmitterVelocityType::VelocityConeLine:
-						particle->velocity = glm::normalize(Math::lerp(Settings.Config.Velocity0, Settings.Config.Velocity1, glm::linearRand(0.0f, 1.0f)));
-						particle->velocity *= glm::linearRand(Settings.Config.VelocityRange.x, Settings.Config.VelocityRange.y);
+						particle->velocity = (Math::lerp(Settings.Config.Velocity0, Settings.Config.Velocity1, glm::linearRand(0.0f, 1.0f)));
+						//particle->velocity *= glm::linearRand(Settings.Config.VelocityRange.x, Settings.Config.VelocityRange.y);
 
 						break;
 					case EmitterVelocityType::VelocityBox:
@@ -118,26 +127,43 @@ void ParticleEmitter::update(float dt)
 	}
 }
 
-void ParticleEmitter::draw()
-{
-	// Draw the emitter position
-	// Note: not necessary
-	TTK::Graphics::DrawTeapot(Settings.Config.Position, 50.0f, glm::vec4(1.0f));
+void ParticleEmitter::draw(glm::vec3 origin)
+{	
+
+	if (Settings.Config.TextureID)
+		TTK::Graphics::BeginPointSprites(TextureCollection::Get(Settings.Config.TextureID));
+
+	TTK::Graphics::DrawTeapot(Settings.Config.Position + origin, 50.0f, glm::vec4(1.0f));
 	
-	TTK::Graphics::EnableAlpha();
-	
+	switch (Settings.Config.BlendMode) {
+		default:
+		case ParticleBlend::BlendMultiply:
+			TTK::Graphics::EnableAlphaBlend();
+			break;
+		case ParticleBlend::BlendAdditive:
+			TTK::Graphics::EnableAdditiveBlend();
+			break;
+	}
+
 	Particle* p = m_pParticles;
 	for (int i = 0; i < m_pNumParticles; ++i, ++p)
 	{
 		if (p->life >= 0.0f) // if particle is alive, draw it
 		{
-			//TTK::Graphics::DrawCube(p->position, p->size, p->colour);
-			//TTK::Graphics::DrawTeapot(p->position, p->size, p->colour); // low fps alert!! use with low particle count
-			TTK::Graphics::DrawPoint(p->position, p->size, p->colour);
-			// You can draw anything!
-			// ...but you should stick to points in this framework since it uses GL 1.0
+			glPointSize(p->size);
+			glBegin(GL_POINTS);
+
+			glColor4fv(&p->colour[0]);
+			glVertex3fv(&p->position[0]);
+
+
+			glEnd();
 		}
 	}
+
+	if (Settings.Config.TextureID)
+		TTK::Graphics::EndPointSprites();
+
 }
 
 void ParticleEmitter::applyForceToParticle(unsigned int idx, glm::vec3 force)

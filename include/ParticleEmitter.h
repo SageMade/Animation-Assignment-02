@@ -43,14 +43,15 @@ private:
 
 
 public:
+	ParticleEmitter(ParticleLayerSettings settings);
 	ParticleEmitter();
 	~ParticleEmitter();
 
-	void initialize(unsigned int numParticles);
+	void initialize();
 	void freeMemory();
 
-	void update(float dt);
-	void draw();
+	void update(float dt, glm::vec3 origin);
+	void draw(glm::vec3 origin);
 
 	void applyForceToParticle(unsigned int idx, glm::vec3 force);
 

@@ -25,6 +25,12 @@
 
 #include "TTK\Texture2D.h"
 
+#include "ParticleEffect.h"
+#include "TextureCollection.h"
+
+#include <fstream>
+#include <iostream>
+
 // Defines and Core variables
 #define FRAMES_PER_SECOND 60
 const int FRAME_DELAY = 1000 / FRAMES_PER_SECOND; // Milliseconds per frame
@@ -47,33 +53,40 @@ glm::vec3 mousePositionFlipped; // x, windowHeight - y, 0
 
 GameObject gameObject;
 
-ParticleEmitter emitter;
-
-Texture2D textureHandle;
+ParticleEffect particleEffect;
 
 void InitializeScene()
-{
+{	
 	LayerConfig config;
-
 	// Physics properties
-	config.Velocity0   = glm::vec3(-120.0f,  120.0f, 0.0f);
-	config.Velocity1   = glm::vec3( 120.0f,  120.0f, 0.0f);
-	config.MassRange   = glm::vec2(0.5f, 0.75f);
-	config.Position    = mousePositionFlipped;
+	config.Velocity0     = glm::vec3(-120.0f,  120.0f, 0.0f);
+	config.Velocity1     = glm::vec3( 120.0f,  120.0f, 0.0f);
+	config.VelocityRange = glm::vec2(75.0f, 100.0f);
+	config.MassRange     = glm::vec2(0.5f, 0.75f);
+	config.Position      = mousePositionFlipped;
 
 	// Visuals
-	config.InitColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	config.BlendMode     = ParticleBlend::BlendAdditive;
+	config.InitColor  = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 	config.FinalColor = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-	config.LifeRange = glm::vec2(0.0f, 10.0f);
-	config.SizeRange = glm::vec2(15.0f, 25.0f);
+	config.LifeRange  = glm::vec2(0.0f, 10.0f);
+	config.SizeRange  = glm::vec2(25.0f, 40.0f);
+	config.TextureID  = 1;
 
-	emitter.Settings.Config = config;
+	ParticleLayerSettings settings = ParticleLayerSettings();
+	settings.Config = config;
+	
+	particleEffect.AddLayer(settings);
+	
+	//std::fstream stream;
+	//stream.open("test.dat");
+	//particleEffect.WriteToFile(stream);
+	//particleEffect = ParticleEffect::ReadFromFile(stream);
+	//stream.close();
 
-	// Create the particles
-	emitter.initialize(MAX_PARTICLES_PER_LAYER);
+	particleEffect.Init();
 
-	textureHandle = Texture2D();
-	textureHandle.loadTextureFromFile("res/snow.png");
+	TextureCollection::LoadTexture(1, "res/snow.png");
 }
 
 // These values are controlled by imgui
@@ -94,33 +107,71 @@ void applyForcesToParticleSystem(ParticleEmitter* e, glm::vec3 target)
 	}
 }
 
+void DisplayLayerConfig(ParticleLayerSettings& settings) {
+	static bool isWindowShowing = true;
+
+	if (ImGui::Begin("Layer Config", &isWindowShowing, ImGuiWindowFlags_::ImGuiWindowFlags_AlwaysAutoResize)) {
+		
+		ImGui::Text("Physics:");
+		ImGui::DragFloat3(" Position", &settings.Config.Position[0]);
+		ImGui::DragFloat3(" Gravity", &settings.Config.Gravity[0]);
+		ImGui::DragFloat(" Duration", &settings.Config.Duration);
+		ImGui::Combo(" Velocity Type", (int*)&settings.Config.VelocityType, "Cone/Line\0Box\0\0");
+		ImGui::DragFloat3(" Velocity 0", &settings.Config.Velocity0[0]);
+		ImGui::DragFloat3(" Velocity 1", &settings.Config.Velocity1[0]);
+		ImGui::DragFloat2(" Velocity Range", &settings.Config.VelocityRange[0]);
+		ImGui::DragFloat2(" Mass Range", &settings.Config.MassRange[0]);
+
+		ImGui::Separator();
+		ImGui::Text("Emission:");
+		ImGui::SliderFloat(" Emission Rate", &settings.Config.EmissionRate, 0, settings.Config.MaxParticles);
+		ImGui::DragFloat2(" Life Range", &settings.Config.LifeRange[0]);
+		ImGui::DragFloat2(" Size Range", &settings.Config.SizeRange[0]);
+		ImGui::Combo(" Emitter Type", (int*)&settings.Config.BoundsType, "Point\0Box\0Circle\0Line\0\0");
+		ImGui::DragFloat3(" Emitter Meta", &settings.Config.BoundsMeta[0]);
+		int maxPart = settings.Config.MaxParticles;
+		ImGui::DragInt(" Max Particles", &maxPart, 100, 5000);
+		settings.Config.MaxParticles = maxPart;
+
+		// TODO: textures
+
+		ImGui::Separator();
+		ImGui::Text("Visuals:");
+		ImGui::ColorEdit4("Start Color", &settings.Config.InitColor[0]);
+		ImGui::ColorEdit4("Final Color", &settings.Config.FinalColor[0]);
+		ImGui::Checkbox(" Interpolate Color", &settings.Config.InterpolateColor);
+		ImGui::Combo(" Blend Mode", (int*)&settings.Config.BlendMode, "Multiply\0Additive\0\0");
+	
+		ImGui::End();
+	}
+}
+
 // This is where we draw stuff
 void DisplayCallbackFunction(void)
 {
 	// Set up scene
-	TTK::Graphics::SetBackgroundColour(0.5f, 0.5f, 0.5f);
+	TTK::Graphics::SetBackgroundColour(0.0f, 0.0f, 0.0f);
 	TTK::Graphics::ClearScreen();
 	TTK::Graphics::SetCameraMode2D(windowWidth, windowHeight);
 
 	// Apply forces on the particle system
-    if (applySeekingForce)
-		applyForcesToParticleSystem(&emitter, glm::vec3(windowHeight*0.5f, windowWidth*0.5, 0.0f));
+    //if (applySeekingForce)
+	//	applyForcesToParticleSystem(&emitter, glm::vec3(windowHeight*0.5f, windowWidth*0.5, 0.0f));
 
 	// perform physics calculations for each particle
-	emitter.update(deltaTime);
+	particleEffect.Update(deltaTime);
 
-	TTK::Graphics::BeginPointSprites(textureHandle);
 	// draw the particles
-	emitter.draw();
-	TTK::Graphics::EndPointSprites();
+	particleEffect.Draw();
 
 	// IMGUI EXAMPLE  -----
+	
 
 	// You must call this prior to using any imgui functions
 	TTK::Graphics::StartUI(windowWidth, windowHeight);
 	
 	// Draw a simple label, this is the same as a "printf" call
-	ImGui::Text("Particle Options. Number of particles = %d", emitter.getNumParticles());
+	//ImGui::Text("Particle Options. Number of particles = %d", emitter.getNumParticles());
 
 	// Button, when button is clicked the code in the block is executed
 	//if (ImGui::Button("Toggle emitter playback"))
@@ -134,17 +185,19 @@ void DisplayCallbackFunction(void)
 		1.0f, 0.0f
 	};
 
+	DisplayLayerConfig(particleEffect.Layers[0]->Settings);
+
 	if (ImGui::Bezier("Foo", dataPoints)) {
 
 	}
 
-	ImGui::Checkbox("Playback Enabled", &emitter.playing);
+	//ImGui::Checkbox("Playback Enabled", &emitter.playing);
 	ImGui::Checkbox("Toggle steering force", &applySeekingForce);
 
 	// Color control
 	// Tip: You can click and drag the numbers in the UI to change them
-	ImGui::ColorEdit4("Start Color", &emitter.Settings.Config.InitColor[0]);
-	ImGui::ColorEdit4("End Color", &emitter.Settings.Config.FinalColor[0]);
+	//ImGui::ColorEdit4("Start Color", &emitter.Settings.Config.InitColor[0]);
+	//ImGui::ColorEdit4("End Color", &emitter.Settings.Config.FinalColor[0]);
 
 	// Example of a slider
 	// As you drag the slider the variable passed by reference gets modified
@@ -159,10 +212,10 @@ void DisplayCallbackFunction(void)
 	// Note: keyboard input is currently broken, if you get it working please let the TA know :)
 	//static bool drawWindow = true;
 	//ImGui::ShowTestWindow(&drawWindow);
-	ImGui::SliderFloat("Particle Life", &emitter.Settings.Config.LifeRange.x, 0.0f, 50.0f);
-	int numParticles = emitter.getNumParticles();
-	ImGui::SliderInt("Emission Rate", &numParticles, 0.0f, MAX_PARTICLES_PER_LAYER);
-	emitter.setNumParticles((unsigned int)numParticles);
+	//ImGui::SliderFloat("Particle Life", &emitter.Settings.Config.LifeRange.x, 0.0f, 50.0f);
+	//int numParticles = emitter.getNumParticles();
+	//ImGui::SliderInt("Emission Rate", &numParticles, 0.0f, MAX_PARTICLES_PER_LAYER);
+	//emitter.setNumParticles((unsigned int)numParticles);
 	
 	// You must call this once you are done doing UI stuff
 	// This is what actually draws the ui on screen
@@ -305,7 +358,7 @@ void MousePassiveMotionCallbackFunction(int x, int y)
 	mousePositionFlipped.x = x;
 	mousePositionFlipped.y = windowHeight - y;
 
-	emitter.Settings.Config.Position = mousePositionFlipped;
+	particleEffect.Origin = mousePositionFlipped;
 }
 
 /* function main()
@@ -316,6 +369,9 @@ void MousePassiveMotionCallbackFunction(int x, int y)
 int main(int argc, char **argv)
 {
 	/* initialize the window and OpenGL properly */
+
+	TTK::Graphics::ScreenWidth = windowWidth;
+	TTK::Graphics::ScreenHeight = windowHeight;
 
 	// Request an OpenGL 4.4 compatibility
 	// A compatibility context is needed to use the provided rendering utilities 

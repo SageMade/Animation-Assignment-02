@@ -159,12 +159,14 @@
     <ClCompile Include="..\include\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\include\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\include\imgui\imgui_impl.cpp" />
+    <ClCompile Include="..\include\ParticleLayerSettings.cpp" />
     <ClCompile Include="..\src\AnimationMath.cpp" />
     <ClCompile Include="..\src\GameObject.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\ParticleEffect.cpp" />
     <ClCompile Include="..\src\ParticleEmitter.cpp" />
     <ClCompile Include="..\src\PointHandle.cpp" />
+    <ClCompile Include="..\src\TextureCollection.cpp" />
     <ClCompile Include="..\src\TTK\GraphicsUtils.cpp" />
     <ClCompile Include="..\src\TTK\MeshBase.cpp" />
     <ClCompile Include="..\src\TTK\QuadMesh.cpp" />
@@ -172,6 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\AnimationMath.h" />
+    <ClInclude Include="..\include\FileHelpers.h" />
     <ClInclude Include="..\include\GameObject.h" />
     <ClInclude Include="..\include\imgui\imgui.h" />
     <ClInclude Include="..\include\imgui\imgui_bezier.h" />
@@ -191,6 +194,7 @@
     <ClInclude Include="..\include\TTK\OBJMesh.h" />
     <ClInclude Include="..\include\TTK\QuadMesh.h" />
     <ClInclude Include="..\include\TTK\Texture2D.h" />
+    <ClInclude Include="..\src\TextureCollection.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

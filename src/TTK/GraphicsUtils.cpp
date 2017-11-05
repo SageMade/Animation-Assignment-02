@@ -8,6 +8,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl.h"
 
+uint32_t TTK::Graphics::ScreenWidth;
+uint32_t TTK::Graphics::ScreenHeight;
+
 void TTK::Graphics::InitImGUI()
 {
 	TTK::internal::imguiInit();
@@ -45,13 +48,20 @@ void TTK::Graphics::DrawText2D(std::string text, int posX, int posY)
 	glPopMatrix();
 }
 
-void TTK::Graphics::EnableAlpha() {
+void TTK::Graphics::EnableAlphaBlend() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 }
 
+void TTK::Graphics::EnableAdditiveBlend() {
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glEnable(GL_BLEND);
+}
+
 void TTK::Graphics::BeginPointSprites(const Texture2D& texture) {
+	glDisable(GL_LIGHTING);
 	glEnable(GL_TEXTURE);
+	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texture.id());
 	glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
 	glEnable(GL_POINT_SPRITE);

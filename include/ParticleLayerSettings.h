@@ -2,7 +2,13 @@
 
 #include <vector>
 
+#include "TTK/Texture2D.h"
+
 #include "GLM/glm.hpp"
+
+#include <fstream>
+
+#define MAX_PARTICLES_PER_LAYER 500
 
 enum SteeringMethod {
 	Unknown  = 0,
@@ -25,10 +31,27 @@ enum EmitterVelocityType {
 	VelocityBox      = 1
 };
 
+enum ParticleBlend {
+	BlendMultiply  = 0,
+	BlendAdditive  = 1
+};
+
 struct SteeringBehaviour {
 	SteeringMethod Method;
 	float          Weight;
+	uint32_t       MetaSize;
 	void*          MetaData;
+
+	template <typename T>
+	void SetData(T *data) {
+		MetaSize = sizeof(T);
+		MetaData = data;
+	}
+
+	template<typename T>
+	T* GetData() {
+		return reinterpret_cast<T*>(MetaData);
+	}
 };
 
 struct LayerConfig {
@@ -45,19 +68,50 @@ struct LayerConfig {
 	glm::vec2           VelocityRange;
 
 	// Stores the range for initial particle life values
-	glm::vec2   LifeRange;
+	glm::vec2     LifeRange;
 	// Stores the range for initial particle size values
-	glm::vec2   SizeRange;
+	glm::vec2     SizeRange;
 	// Stores the range for particle masses
-	glm::vec2   MassRange;
+	glm::vec2     MassRange;
 
-	EmitterType BoundsType;
-	glm::vec3   BoundsMeta;
+	EmitterType   BoundsType;
+	glm::vec3     BoundsMeta;
 
-	bool        InterpolateColor;
+	uint8_t       TextureID;
+
+	uint32_t      MaxParticles;
+
+	ParticleBlend BlendMode;
+	bool          InterpolateColor;
+
+	LayerConfig() :
+		Position(glm::vec3(0.0f)),
+		Gravity(glm::vec3(0.0f)),
+		EmissionRate(1.0f),
+		Duration(0.0f),
+		InitColor(glm::vec4(0.0f)),
+		FinalColor(glm::vec4(0.0f)),
+		VelocityType(EmitterVelocityType::VelocityConeLine),
+		Velocity0(glm::vec3(0.0f)),
+		Velocity1(glm::vec3(0.0f)),
+		VelocityRange(glm::vec2(0.0f)),
+		LifeRange(glm::vec2(0.0f, 1.0f)),
+		SizeRange(glm::vec2(10.0f, 100.0f)),
+		MassRange(glm::vec2(0.0f)),
+		BoundsType(EmitterType::Point),
+		BoundsMeta(glm::vec3(0.0f)),
+		BlendMode(ParticleBlend::BlendMultiply),
+		InterpolateColor(true),
+		MaxParticles(MAX_PARTICLES_PER_LAYER),
+		TextureID(0)
+		{
+	}
 };
 
 struct ParticleLayerSettings {
 	LayerConfig Config;	
 	std::vector<SteeringBehaviour> Behaviours;
+
+	void WriteToFile(std::fstream& stream);
+	static ParticleLayerSettings ReadFromFile(std::fstream& stream);
 };
