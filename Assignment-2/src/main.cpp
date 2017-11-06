@@ -269,6 +269,13 @@ void LoadEffect(const char* fileName) {
 			particleEffect = ParticleEffect::ReadFromFile(stream);
 			particleEffect.Init();
 
+			Settings.EffectSettings = ParticleEffectSettings();
+			Settings.EffectSettings.Layers.reserve(particleEffect.Layers.size());
+			memcpy(Settings.EffectSettings.Name, particleEffect.Name, EFFECT_NAME_MAX_LENGTH);
+			for (int ix = 0; ix < particleEffect.Layers.size(); ix++) {
+				Settings.EffectSettings.Layers.push_back(particleEffect.Layers[ix]->Settings);
+			}
+
 			if (!followMouse)
 				particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
 		}
@@ -521,6 +528,30 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 				settings.Layers.erase(settings.Layers.begin() + ix);
 				particleEffect.ReplaceSettings(Settings.EffectSettings);
 				ix--;
+			}
+			if (ix > 0) {
+				ImGui::SameLine();
+				if (ImGui::Button("^")) {
+					ParticleLayerSettings temp = settings.Layers[ix - 1];
+					settings.Layers[ix - 1] = settings.Layers[ix];
+					settings.Layers[ix] = temp;
+
+					ParticleLayer * tempLayer = particleEffect.Layers[ix -1];
+					particleEffect.Layers[ix - 1] = particleEffect.Layers[ix];
+					particleEffect.Layers[ix] = tempLayer;
+				}
+			}
+			if (ix < settings.Layers.size() - 1) {
+				ImGui::SameLine();
+				if (ImGui::Button("v")) {
+					ParticleLayerSettings temp = settings.Layers[ix + 1];
+					settings.Layers[ix + 1] = settings.Layers[ix];
+					settings.Layers[ix] = temp;
+
+					ParticleLayer * tempLayer = particleEffect.Layers[ix + 1];
+					particleEffect.Layers[ix + 1] = particleEffect.Layers[ix];
+					particleEffect.Layers[ix] = tempLayer;
+				}
 			}
 			ImGui::PopID();
 		}
@@ -802,7 +833,7 @@ int main(int argc, char **argv)
 	TTK::Graphics::ScreenWidth = windowWidth;
 	TTK::Graphics::ScreenHeight = windowHeight;
 
-	// Request an OpenGL 4.4 compatibility
+	// Request an OpenGL 4.5 compatibility
 	// A compatibility context is needed to use the provided rendering utilities 
 	// which are written in OpenGL 1.1
 	glutInitContextVersion(4, 4); 

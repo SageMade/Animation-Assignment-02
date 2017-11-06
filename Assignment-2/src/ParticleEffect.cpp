@@ -6,6 +6,8 @@
 #include "FileHelpers.h"
 
 ParticleEffect::ParticleEffect() {
+	memset(Name, 0, EFFECT_NAME_MAX_LENGTH);
+	memcpy(Name, "Default", 8);
 }
 
 ParticleEffect::~ParticleEffect()
@@ -154,6 +156,7 @@ void ParticleEffect::Draw() {
 }
 
 void ParticleEffect::WriteToFile(std::fstream & stream) {
+	Write(stream, Name, EFFECT_NAME_MAX_LENGTH);
 	size_t size = Layers.size();
 	Write(stream, &size);
 	for (int ix = 0; ix < Layers.size(); ix++) {
@@ -163,6 +166,7 @@ void ParticleEffect::WriteToFile(std::fstream & stream) {
 
 ParticleEffect ParticleEffect::ReadFromFile(std::fstream & stream) {
 	ParticleEffect result = ParticleEffect();
+	Read(stream, result.Name, EFFECT_NAME_MAX_LENGTH);
 	size_t count = 0;
 	Read(stream, &count);
 

@@ -31,29 +31,26 @@ std::stack<glm::mat4> Renderer::myMatrixStack;
 void Renderer::Init() {
     myVertexBufferData = new ParticleVertex[PARTICLE_BATCH_SIZE];
 
-	const char *vertex_shader = R"LIT(#version 440
+	const char *vertex_shader = R"LIT(#version 410
 		uniform mat4 xWorld;
-		struct ProgVert {
-			vec3  Position;
-			vec4  Color;
-			float Size;
-			float TexId;
-		};
 		struct VsVert {
 			vec4  Color;
 			float Size;
 			float TexId;
 		};
-		in ProgVert Input;
+        layout (location = 0) in vec3 Position;
+        layout (location = 1) in vec4 Color;
+        layout (location = 2) in float Size;
+        layout (location = 3) in float TexId;
 		out VsVert VsToGs;
 		void main() {
-			VsToGs.Color = Input.Color;
-			VsToGs.TexId = Input.TexId;
-			VsToGs.Size = Input.Size;
-			gl_Position = xWorld * vec4(Input.Position, 1);
+			VsToGs.Color = Color;
+			VsToGs.TexId = TexId;
+			VsToGs.Size = Size;
+			gl_Position = xWorld * vec4(Position, 1);
 		})LIT";
 
-	const char* geometry_shader = R"LIT(#version 440
+	const char* geometry_shader = R"LIT(#version 410
 		layout (points) in;
 		layout (triangle_strip, max_vertices = 4) out;
 		uniform mat4 xWorld;
@@ -125,7 +122,7 @@ void Renderer::Init() {
 
 		})LIT";
 	
-	const char* fragment_shader = R"LIT(#version 440
+	const char* fragment_shader = R"LIT(#version 410
 		uniform sampler2D xSamplers[8];
 		struct GsVert {
 			vec2  TexCoord;
@@ -137,6 +134,8 @@ void Renderer::Init() {
 		void main() {
 			FinalColor = GsToFS.Color * texture2D(xSamplers[int(GsToFS.TexId)], GsToFS.TexCoord);
 		})LIT";
+
+	GLenum error = glGetError();
 	
 	myShaderProgram = glCreateProgram();
 	GLuint g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
@@ -161,7 +160,37 @@ void Renderer::Init() {
 	myProjectionLoc = glGetUniformLocation(myShaderProgram, "xProjection");
 	myTexturesUniformLoc = glGetUniformLocation(myShaderProgram, "xSamplers");
 
-	GLenum error = glGetError();
+	GLint success = 0;
+	glGetShaderiv(g_VertHandle, GL_COMPILE_STATUS, &success);
+
+	// If we failed to compile
+	if (success == GL_FALSE) {
+		// Get the size of the error log
+		GLint logSize = 0;
+		glGetShaderiv(g_VertHandle, GL_INFO_LOG_LENGTH, &logSize);
+
+		// Create a new character buffer for the log
+		char* log = new char[logSize];
+
+		// Get the log
+		glGetShaderInfoLog(g_VertHandle, logSize, &logSize, log);
+		delete[] log;
+	}
+	glGetProgramiv(myShaderProgram, GL_LINK_STATUS, &success);
+
+	// If not, we need to grab the log and throw an exception
+	if (success == GL_FALSE) {
+		// Get the length of the log
+		GLint length = 0;
+		glGetProgramiv(myShaderProgram, GL_INFO_LOG_LENGTH, &length);
+
+		// Read the log from openGL
+		char* log = new char[length];
+		glGetProgramInfoLog(myShaderProgram, length, &length, log);
+		delete[] log;
+	}
+
+	error = glGetError();
 
 	GLint prevVbo{ 0 }, prevVao{ 0 };
 	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prevVbo);

@@ -11,6 +11,7 @@
 class ParticleEffect {
 public:
 	std::vector<ParticleLayer*> Layers;
+	char                        Name[EFFECT_NAME_MAX_LENGTH];
 
 	ParticleEffect();
 	~ParticleEffect();
