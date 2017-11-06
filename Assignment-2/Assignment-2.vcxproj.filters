@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="TTK">
+      <UniqueIdentifier>{213d5bcb-8d6f-4e4d-91bc-8702e83bc1b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{c9a2148d-db1a-4bd9-8887-362eb5834a90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\Headers">
+      <UniqueIdentifier>{329d366b-d2f0-4449-b9f9-55730e85df7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\Source">
+      <UniqueIdentifier>{c3fbb3cd-a215-465b-88af-1d02a8dd31f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TTK\Headers">
+      <UniqueIdentifier>{a8d35451-7db2-4610-9824-bd0229b6738c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TTK\Source">
+      <UniqueIdentifier>{2c07baba-9070-4cca-b788-24447c3f5926}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assignment">
+      <UniqueIdentifier>{6cab89e7-be8e-4e12-8386-cfacdff60ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assignment\Source Files">
+      <UniqueIdentifier>{9b8d98b9-df80-4bfc-9495-4702a16a5f41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assignment\Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\TextureCollection.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AnimationMath.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GameObject.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ParticleEffect.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ParticleLayerSettings.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PointHandle.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\imgui\imgui.cpp">
+      <Filter>ImGui\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\imgui\imgui_demo.cpp">
+      <Filter>ImGui\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\imgui\imgui_draw.cpp">
+      <Filter>ImGui\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\imgui\imgui_impl.cpp">
+      <Filter>ImGui\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\TTK\GraphicsUtils.cpp">
+      <Filter>TTK\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\TTK\MeshBase.cpp">
+      <Filter>TTK\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\TTK\OBJMesh.cpp">
+      <Filter>TTK\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\TTK\QuadMesh.cpp">
+      <Filter>TTK\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\TTK\Texture2D.cpp">
+      <Filter>TTK\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ParticleLayer.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stb_proxy.cpp">
+      <Filter>TTK\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FileHelpers.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\AnimationMath.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FileHelpers.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameObject.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\KeyframeController.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ParticleEffect.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ParticleEffectSettings.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ParticleLayerSettings.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PointHandle.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TextureCollection.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\imgui.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\imgui_bezier.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\imgui_color.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\imgui_impl.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\imgui_internal.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\imgui_user.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\stb_rect_pack.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\stb_textedit.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\stb_truetype.h">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\TTK\Camera.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\TTK\GraphicsUtils.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\TTK\MeshBase.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\TTK\OBJMesh.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\TTK\QuadMesh.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\TTK\Texture2D.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ParticleLayer.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stb_proxy.h">
+      <Filter>TTK\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GLM.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\imgui\curve.hpp">
+      <Filter>ImGui\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AdaptiveCurve.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
