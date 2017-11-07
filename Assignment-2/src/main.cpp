@@ -35,6 +35,8 @@
 
 #include "AdaptiveCurve.h"
 
+#include <sstream>
+
 #include <filesystem>
 namespace fs = std::experimental::filesystem;
 
@@ -176,8 +178,84 @@ struct FileDialog {
 		}
 };
 
+struct TextureCollectionEditor {
+		bool IsVisible;
+		int  EditingTexture;
+
+		TextureCollectionEditor() {
+			myDialog.Mode = OpenFileMode;
+			myDialog.Filter = ".png";
+		}
+	
+		void Display() {
+			if (IsVisible) {
+				if (ImGui::Begin("Textures", &IsVisible, ImGuiWindowFlags_AlwaysAutoResize)) {
+					ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
+					ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
+
+					int count = 0;
+					for (int ix = 0; ix < 32; ix++) {
+						const Texture2D& tex = TextureCollection::Get(ix);
+						if (tex.id() != 0) {
+							count++;
+
+							if (ImGui::ImageButton((ImTextureID)&tex, ImVec2(100, 100))) {
+								EditingTexture = ix;
+								std::string fileName = tex.getPath();
+								memcpy(myTexturePath, fileName.c_str(), fileName.size() + 1);
+							}
+							if ((count % 3))
+								ImGui::SameLine();
+						}
+					}
+
+					if (ImGui::Button("+", ImVec2(108, 106))) {
+						myDialog.Show = true;
+					}
+
+					if (EditingTexture != 0) {
+						ImGui::Separator();
+
+						Texture2D& tex = TextureCollection::Get(EditingTexture);
+
+						ImGui::InputText("Name", tex.Name, 16);
+						ImGui::InputText("Path", myTexturePath, 255);
+						ImGui::SameLine();
+						if (ImGui::Button("Browse")) {
+							myDialog.Show = true;
+						}
+					}
+
+					ImGui::PopStyleColor(2);
+
+					ImGui::End();
+				}
+			}
+			else {
+				EditingTexture = 0;
+			}
+
+			if (myDialog.DrawDialog() == 1) {
+				for (int ix = 0; ix < 32; ix++) {
+					if (TextureCollection::Get(ix).id() == 0) {
+						TextureCollection::LoadTexture(ix, myDialog.GetFile().c_str());
+						Renderer::SetTexture(ix, TextureCollection::Get(ix).id());
+						break;
+					}
+				}
+			}
+		}
+
+	private:
+		char       myTextureName[16];
+		char       myTexturePath[255];
+		FileDialog myDialog;
+};
+
 FileDialog OpenFileDlg;
 FileDialog SaveFileDlg;
+
+TextureCollectionEditor TexManager;
 
 AdaptiveCurve<glm::vec2> curve;
 
@@ -192,10 +270,12 @@ void InitializeScene()
 	SaveFileDlg.Filter = ".dat";
 	SaveFileDlg.Mode = SaveFileMode;
 
+	TexManager.IsVisible = true;
+
 	// Dont't forget the null terminator!
 	memcpy(inFileName, "test.dat", 9);
 	memcpy(outFileName, "test.dat", 9);
-
+	
 	Settings.EffectSettings = ParticleEffectSettings();
 
 	LayerConfig config;
@@ -222,7 +302,8 @@ void InitializeScene()
 	TextureCollection::LoadTexture(2, "textures/flare.png");
 	
 	//Renderer::SetTexture(0, TextureCollection::Get(1).id());
-	Renderer::SetTexture(1, TextureCollection::Get(2).id());
+	Renderer::SetTexture(1, TextureCollection::Get(1).id());
+	Renderer::SetTexture(2, TextureCollection::Get(2).id());
 
     WindowReshapeCallbackFunction(TTK::Graphics::ScreenWidth, TTK::Graphics::ScreenHeight);
 }
@@ -239,6 +320,7 @@ void SaveEffect(const char* fileName) {
 		std::fstream stream;
 		stream.open(fileName, std::ios::out | std::ios::binary);
 		if (stream.good()) {
+			TextureCollection::WriteToFile(stream);
 			particleEffect.WriteToFile(stream);
 		}
 		else {
@@ -253,6 +335,7 @@ void LoadEffect(const char* fileName) {
 		std::fstream stream;
 		stream.open(fileName, std::ios::in | std::ios::binary);
 		if (stream.good()) {
+			TextureCollection::ReadFromFile(stream);
 			particleEffect = ParticleEffect::ReadFromFile(stream);
 			particleEffect.Init();
 
@@ -440,6 +523,26 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 				}
 				ImGui::Checkbox(" Interpolate Color", &settings.Config.InterpolateColor);
 				ImGui::Combo(" Blend Mode", (int*)&settings.Config.BlendMode, "Multiply\0Additive\0\0");
+
+
+				std::stringstream stream;
+				stream << "Default";
+				stream.write("\0", 1);
+
+				for (int ix = 1; ix < 32; ix++) {
+					if (TextureCollection::Get(ix).id() != 0) {
+						stream << TextureCollection::Get(ix).Name;
+						stream.write("\0", 1);
+					}
+					else {
+						stream << "-none-";
+						stream.write("\0", 1);
+					}
+				}
+
+				int foo = settings.Config.TextureID;
+				ImGui::Combo(" Texture Mode", &foo, stream.str().c_str());
+				settings.Config.TextureID = foo;
 			}
 
 			if (ImGui::CollapsingHeader("Behaviours:")) {
@@ -545,11 +648,13 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 	}
 }
 
+glm::vec3 clearColor = glm::vec3();
+
 // This is where we draw stuff
 void DisplayCallbackFunction(void)
 {
 	// Set up scene
-	TTK::Graphics::SetBackgroundColour(0.0f, 0.0f, 0.0f);
+	TTK::Graphics::SetBackgroundColour(clearColor.x, clearColor.y, clearColor.z);
 	TTK::Graphics::ClearScreen();
 	TTK::Graphics::SetCameraMode2D(windowWidth, windowHeight);
 
@@ -575,10 +680,50 @@ void DisplayCallbackFunction(void)
 
 	// You must call this prior to using any imgui functions
 	TTK::Graphics::StartUI(windowWidth, windowHeight);
+
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("Load")) {
+				OpenFileDlg.Show = true;
+				if (SaveFileDlg.Show)
+					SaveFileDlg.Show = false;
+			}
+			if (ImGui::MenuItem("Save")) {
+				SaveFileDlg.Show = true;
+				if (OpenFileDlg.Show)
+					OpenFileDlg.Show = false;
+			}
+			if (ImGui::MenuItem("Create new effect")) {
+				Settings.EffectSettings = ParticleEffectSettings();
+				particleEffect.ReplaceSettings(Settings.EffectSettings);
+
+				if (!followMouse)
+					particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("View")) {
+			if (ImGui::MenuItem("Texture Manager")) {
+				TexManager.IsVisible = true;
+			}
+			ImGui::Separator();
+			ImGui::Text("Background:");
+			ImGui::ColorEdit3("", &clearColor[0]);
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
 	
 	// Display the load effect path
 	if (ImGui::Begin("Effect Editor", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
+
+		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
+
+		ImGui::PopStyleColor(2);
 		
+		ImGui::Separator();
+
 		// Editor controls
 		if (ImGui::CollapsingHeader("Editor Controls")) {
 			ImGui::Checkbox("Playback Enabled", &Settings.IsPlaying);
@@ -591,34 +736,6 @@ void DisplayCallbackFunction(void)
 			ImGui::Checkbox("Follow Mouse", &followMouse);
 			ImGui::DragFloat3("Effect Pos", &particleEffect.Origin[0]);
 		}
-
-		ImGui::Separator();
-
-		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
-
-
-		if (ImGui::Button("Load")) {
-			OpenFileDlg.Show = true;
-			if (SaveFileDlg.Show)
-				SaveFileDlg.Show = false;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Save")) {
-			SaveFileDlg.Show = true;
-			if (OpenFileDlg.Show)
-				OpenFileDlg.Show = false;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Create new effect")) {
-			Settings.EffectSettings = ParticleEffectSettings();
-			particleEffect.ReplaceSettings(Settings.EffectSettings);
-
-			if (!followMouse)
-				particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
-		}
-
-		ImGui::PopStyleColor(2);
 
 		/*
 		ImGui::Separator();
@@ -634,6 +751,8 @@ void DisplayCallbackFunction(void)
 
 		ImGui::End();
 	}
+
+	TexManager.Display();
 	
 	DisplayLayerConfig(Settings.ActiveEditLayer);
 
@@ -734,6 +853,8 @@ void WindowReshapeCallbackFunction(int w, int h)
 
 	if (!followMouse)
 		particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
+
+	particleEffect.ResizeFbo(TTK::Graphics::ScreenWidth, TTK::Graphics::ScreenHeight);
 
 	//Renderer::WorldTransform = glm::translate(glm::vec3(0, 0, 0.5f));
 	Renderer::ProjectionMatrix = glm::orthoLH(0.0f, (float)TTK::Graphics::ScreenWidth, 0.0f, (float)TTK::Graphics::ScreenHeight, 0.0f, 1000.0f);

@@ -32,6 +32,8 @@ class Renderer {
 
 		static void Submit(const glm::vec3 &pos, const glm::vec4& color, const float angle = 0.0f, const float size = 1.0f, uint8_t texture = 255); 
 
+		static void FullscreenQuad(uint32_t texHandle);
+
 		static void Flush();
 		
 		static void SetTexture(const uint8_t slot, const uint32_t handle);
@@ -46,6 +48,10 @@ class Renderer {
 		static uint32_t myVao;
 		static uint16_t myActiveParticleCount;
 		static uint16_t myPrimitiveBufferSize;
+
+		static uint32_t myScreenSpaceBuffer;
+		static uint32_t myFullscreenQuad;
+		static uint32_t myScreenSpaceShader;
 		
 		static ParticleVertex *myVertexBufferData;
 

@@ -161,13 +161,15 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 
 void ParticleLayer::draw(glm::vec3 origin)
 {	
+	glEnable(GL_BLEND);
+
 	switch (Settings.Config.BlendMode) {
 		default:
 		case ParticleBlend::BlendMultiply:
-			TTK::Graphics::EnableAlphaBlend();
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			break;
 		case ParticleBlend::BlendAdditive:
-			TTK::Graphics::EnableAdditiveBlend();
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 			break;
 	}
 

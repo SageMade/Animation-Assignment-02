@@ -42,9 +42,7 @@ namespace TTK
 		// posX, posY are to be specified in pixels. 0, 0 is the bottom left
 		// corner of the window.
 		static void DrawText2D(std::string text, int posX, int posY);
-
-		static void FullscreenQuad(const GLuint texHandle);
-
+		
 		// Description:
 		// Draws a line from p0 to p1
 		// Arguments:
@@ -114,6 +112,10 @@ namespace TTK
 		static void ClearScreen();
 
 		static void DrawGrid();
+
+		private:
+			static GLuint fullscreenQuad;
+			static GLuint myScreenSpaceShader;
 	};
 }
 

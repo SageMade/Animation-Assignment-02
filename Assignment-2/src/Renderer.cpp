@@ -21,6 +21,10 @@ uint32_t Renderer::myShaderProgram;
 
 uint8_t Renderer::myActiveTexture;
 
+uint32_t Renderer::myScreenSpaceBuffer;
+uint32_t Renderer::myFullscreenQuad;
+uint32_t Renderer::myScreenSpaceShader;
+
 glm::mat4 Renderer::WorldTransform = glm::mat4();
 glm::mat4 Renderer::ViewMatrix = glm::mat4();
 glm::mat4 Renderer::ProjectionMatrix = glm::mat4();
@@ -192,52 +196,69 @@ void Renderer::Init() {
 	myWorldUniformLoc = glGetUniformLocation(myShaderProgram, "xWorld");
 	myProjectionLoc = glGetUniformLocation(myShaderProgram, "xProjection");
 	myTexturesUniformLoc = glGetUniformLocation(myShaderProgram, "xSamplers");
+	
+	const char *vertex_shader2 = R"LIT(#version 430
+        layout (location = 0) in vec3 Position;
+        layout (location = 1) in vec2 TexCoord;
+        layout (location = 2) in vec4 Color;
+		out vec4 FragColor;
+		out vec2 FragUv;
+		void main() {
+			FragColor = Color;
+			FragUv    = TexCoord;
+			gl_Position = vec4(Position, 1.0f);
+		})LIT";
 
-	GLint success = 0;
-	glGetShaderiv(g_VertHandle, GL_COMPILE_STATUS, &success);
+	const char* fragment_shader2 = R"LIT(#version 430
+		layout (location = 0) uniform sampler2D xSampler;
+		in vec4 FragColor;
+		in vec2 FragUv;
+		out vec4 FinalColor;
+		void main() {
+			FinalColor = FragColor * texture2D(xSampler, FragUv);
+		})LIT";
 
-	// If we failed to compile
-	if (success == GL_FALSE) {
-		// Get the size of the error log
-		GLint logSize = 0;
-		glGetShaderiv(g_VertHandle, GL_INFO_LOG_LENGTH, &logSize);
+	error = glGetError();
 
-		// Create a new character buffer for the log
-		char* log = new char[logSize];
+	myScreenSpaceShader = glCreateProgram();
+	g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
+	g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(g_VertHandle, 1, &vertex_shader2, 0);
+	glShaderSource(g_FragHandle, 1, &fragment_shader2, 0);
+	glCompileShader(g_VertHandle);
+	glCompileShader(g_FragHandle);
+	glAttachShader(myScreenSpaceShader, g_VertHandle);
+	glAttachShader(myScreenSpaceShader, g_FragHandle);
+	glLinkProgram(myScreenSpaceShader);
+	//glDeleteShader(g_VertHandle);
+	//glDeleteShader(g_FragHandle);
 
-		// Get the log
-		glGetShaderInfoLog(g_VertHandle, logSize, &logSize, log);
-		delete[] log;
+	int bufflen{ 0 };
+	glGetShaderiv(g_VertHandle, GL_INFO_LOG_LENGTH, &bufflen);
+	if (bufflen > 1)
+	{
+		GLchar* log_string = new char[bufflen + 1];
+		glGetShaderInfoLog(g_VertHandle, bufflen, 0, log_string);
+
+		delete[] log_string;
 	}
-	glGetShaderiv(g_GeoHandle, GL_COMPILE_STATUS, &success);
+	glGetShaderiv(g_FragHandle, GL_INFO_LOG_LENGTH, &bufflen);
+	if (bufflen > 1)
+	{
+		GLchar* log_string = new char[bufflen + 1];
+		glGetShaderInfoLog(g_FragHandle, bufflen, 0, log_string);
 
-	// If we failed to compile
-	if (success == GL_FALSE) {
-		// Get the size of the error log
-		GLint logSize = 0;
-		glGetShaderiv(g_GeoHandle, GL_INFO_LOG_LENGTH, &logSize);
+		delete[] log_string;
+	}
+	glGetProgramiv(myScreenSpaceShader, GL_INFO_LOG_LENGTH, &bufflen);
+	if (bufflen > 1)
+	{
+		GLchar* log_string = new char[bufflen + 1];
+		glGetProgramInfoLog(myScreenSpaceShader, bufflen, 0, log_string);
 
-		// Create a new character buffer for the log
-		char* log = new char[logSize];
-
-		// Get the log
-		glGetShaderInfoLog(g_GeoHandle, logSize, &logSize, log);
-		delete[] log;
+		delete[] log_string;
 	}
 
-	glGetProgramiv(myShaderProgram, GL_LINK_STATUS, &success);
-
-	// If not, we need to grab the log and throw an exception
-	if (success == GL_FALSE) {
-		// Get the length of the log
-		GLint length = 0;
-		glGetProgramiv(myShaderProgram, GL_INFO_LOG_LENGTH, &length);
-
-		// Read the log from openGL
-		char* log = new char[length];
-		glGetProgramInfoLog(myShaderProgram, length, &length, log);
-		delete[] log;
-	}
 
 	error = glGetError();
 
@@ -274,11 +295,37 @@ void Renderer::Init() {
 		255U, 255U, 255U, 255U
 	};
 	myDefaultTexture.createTexture(1, 1, GL_TEXTURE_2D, GL_LINEAR, GL_REPEAT, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	//delete[] data;
+	error = glGetError();
+	myTextureHandles[0] = myDefaultTexture.id();
+	
+	glGenVertexArrays(1, &myFullscreenQuad);
+	glGenBuffers(1, &myScreenSpaceBuffer);
+
+
+	float *texData = new float[36]{
+		-1.0f,  1.0f, 0.0f,   0.0f, 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f,  1.0f, 0.0f,   1.0f, 1.0f,  1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f,   0.0f, 0.0f,  1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, -1.0f, 0.0f,   1.0f, 0.0f,  1.0f, 1.0f, 1.0f, 1.0f
+	};
+
+	glBindVertexArray(myFullscreenQuad);
+	glBindBuffer(GL_ARRAY_BUFFER, myScreenSpaceBuffer);
+	glBufferData(GL_ARRAY_BUFFER, 36 * sizeof(float), texData, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, false, 9 * sizeof(float), (void*)(0));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, false, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 4, GL_FLOAT, false, 9 * sizeof(float), (void*)(5 * sizeof(float)));
 
 	error = glGetError();
 
-	myTextureHandles[0] = myDefaultTexture.id();
+	glBindVertexArray(0);
+
+	glBindVertexArray(prevVao);
+	glBindBuffer(GL_ARRAY_BUFFER, prevVbo);
 }
 
 void Renderer::PushMatrix(glm::mat4 world) {
@@ -364,6 +411,46 @@ void Renderer::Flush() {
 	if (!texEnabled) glDisable(GL_TEXTURE);
 
 	myActiveParticleCount = 0;
+}
+
+void Renderer::FullscreenQuad(const GLuint texHandle) {
+
+	GLint prevVbo{ 0 }, prevVao{ 0 }, prevShader{ 0 }, prevTexSlot{ 0 };
+	GLboolean tex2DEnabled{ false }, texEnabled{ false };
+	GLint prevTexBinding;
+	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prevVbo);
+	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVao);
+	glGetIntegerv(GL_CURRENT_PROGRAM, &prevShader);
+	glGetIntegerv(GL_ACTIVE_TEXTURE, &prevTexSlot);
+	glGetBooleanv(GL_TEXTURE_2D, &tex2DEnabled);
+	glGetBooleanv(GL_TEXTURE, &texEnabled);
+
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE);
+
+	glBindBuffer(GL_ARRAY_BUFFER, myScreenSpaceBuffer);
+
+	glUseProgram(myScreenSpaceShader);
+	glUniform1i(0, 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexBinding);
+	glBindTexture(GL_TEXTURE_2D, texHandle);
+	
+	glBindVertexArray(myFullscreenQuad);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glBindVertexArray(prevVao);
+
+	glUseProgram(prevShader);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, prevTexBinding);
+	glActiveTexture(prevTexSlot);
+
+	if (!tex2DEnabled) glDisable(GL_TEXTURE_2D);
+	if (!texEnabled) glDisable(GL_TEXTURE);
 }
 
 void Renderer::SetTexture(const uint8_t slot, const uint32_t handle) {

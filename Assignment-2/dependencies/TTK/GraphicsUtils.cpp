@@ -11,6 +11,8 @@
 uint32_t TTK::Graphics::ScreenWidth;
 uint32_t TTK::Graphics::ScreenHeight;
 
+GLuint TTK::Graphics::fullscreenQuad;
+
 void TTK::Graphics::InitImGUI()
 {
 	TTK::internal::imguiInit();
@@ -65,44 +67,11 @@ void TTK::Graphics::DrawText2D(std::string text, int posX, int posY)
 	glPopMatrix();
 }
 
-void TTK::Graphics::FullscreenQuad(const GLuint texHandle) {
-
-	GLboolean tex2DEnabled, texEnabled;
-	glGetBooleanv(GL_TEXTURE_2D, &tex2DEnabled);
-	glGetBooleanv(GL_TEXTURE, &texEnabled);
-	glEnable(GL_TEXTURE);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, texHandle);
-
-	glPushMatrix();
-	glLoadIdentity();
-
-	glBegin(GL_QUADS);
-
-	glColor3f(1.0f, 1.0f, 1.0f);  // Green
-	glVertex2f(-1.0f,  1.0f);  // Top-right of top face
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex2f( 1.0f,  1.0f);  // Top-left of top face
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex2f(-1.0f, -1.0f);  // Bottom-left of top face
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex2f( 1.0f, -1.0f);
-	glTexCoord2f(1.0f, 0.0f);
-
-	glEnd();
-
-	glPopMatrix();
-
-	if (!tex2DEnabled)
-		glDisable(GL_TEXTURE_2D);
-	if (!texEnabled)
-		glDisable(GL_TEXTURE);
-}
-
 void TTK::Graphics::EnableAlphaBlend() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 }
+
 
 void TTK::Graphics::EnableAdditiveBlend() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);

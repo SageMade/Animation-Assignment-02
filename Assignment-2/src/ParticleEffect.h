@@ -28,7 +28,8 @@ public:
 	void WriteToFile(std::fstream& stream);
 	static ParticleEffect ReadFromFile(std::fstream& stream);
 
-	void FBO_2_PPM_file();
+	void BakeFboToBmp(const char * filename);
+	void ResizeFbo(uint32_t width, uint32_t height);
 
 	void ReplaceSettings(const ParticleEffectSettings& settings);
 

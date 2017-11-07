@@ -2,8 +2,13 @@
 #include "TTK/Texture2D.h"
 
 #include <stb_image.h>
-
+#include <algorithm>
 #include <iostream>
+
+#include <filesystem>
+namespace fs = std::experimental::filesystem;
+
+#include "FileHelpers.h"
 
 Texture2D::Texture2D()
 	: m_pTexWidth(0),
@@ -62,6 +67,10 @@ void Texture2D::loadTextureFromFile(std::string filePath)
 	// Check to see if we got any data
 	if (data) {
 		createTexture(width, height, GL_TEXTURE_2D, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		m_pFileName = filePath;
+		fs::path p = fs::path(filePath);
+		std::string fileName = p.stem().string();
+		memcpy(Name, fileName.c_str(), std::max(fileName.size(), (size_t)16));
 		delete data;
 	}
 }
@@ -125,6 +134,88 @@ void Texture2D::updateTexture(void* newDataPtr /*= nullptr*/)
 void Texture2D::deleteTexture()
 {
 	glDeleteTextures(1, &m_pTexID);
+}
+
+void Texture2D::writeToFile(std::fstream & stream) {
+	Write(stream, Name, 16);
+	Write(stream, m_pFiltering);
+	Write(stream, m_pEdgeBehaviour);
+	Write(stream, m_pInternalFormat);
+	Write(stream, m_pTextureFormat);
+	Write(stream, m_pDataType);
+	Write(stream, m_pTarget);
+	Write(stream, m_pTexWidth);
+	Write(stream, m_pTexHeight);
+	bool writeData = m_pFileName == "";
+	Write(stream, writeData);
+	if (writeData) {
+		int pixelSize = 1;
+		switch (m_pDataType) {
+			case GL_UNSIGNED_BYTE:
+				pixelSize = 1;
+				break;
+			case GL_FLOAT:
+				pixelSize = sizeof(float);
+				break;
+		}
+		switch (m_pTextureFormat) {
+			case GL_RGBA:
+				pixelSize *= 4;
+				break;
+			case GL_RGB:
+				pixelSize *= 3;
+				break;
+		}
+		Write(stream, m_pDataPtr, m_pTexWidth * m_pTexHeight * pixelSize);
+	}
+	else {
+		size_t size = m_pFileName.size() + 1;
+		Write(stream, size);
+		Write(stream, m_pFileName.c_str(), size);
+	}
+}
+
+void Texture2D::readFromFile(std::fstream & stream) {
+	Read(stream, Name, 16);
+	Read(stream, m_pFiltering);
+	Read(stream, m_pEdgeBehaviour);
+	Read(stream, m_pInternalFormat);
+	Read(stream, m_pTextureFormat);
+	Read(stream, m_pDataType);
+	Read(stream, m_pTarget);
+	Read(stream, m_pTexWidth);
+	Read(stream, m_pTexHeight);
+	bool readData = false;
+	Read(stream, readData);
+	if (readData) {
+		int pixelSize = 1;
+		switch (m_pDataType) {
+			case GL_UNSIGNED_BYTE:
+				pixelSize = 1;
+				break;
+			case GL_FLOAT:
+				pixelSize = sizeof(float);
+				break;
+		}
+		switch (m_pTextureFormat) {
+			case GL_RGBA:
+				pixelSize *= 4;
+				break;
+			case GL_RGB:
+				pixelSize *= 3;
+				break;
+		}
+		m_pDataPtr = malloc(m_pTexWidth * m_pTexHeight * pixelSize);
+		Read(stream, m_pDataPtr, m_pTexWidth * m_pTexHeight * pixelSize);
+	}
+	else {
+		size_t stringSize = 0;
+		Read(stream, stringSize);
+		char* data = new char[stringSize];
+		Read(stream, data, stringSize);
+		m_pFileName = data;
+		loadTextureFromFile(m_pFileName);
+	}
 }
 
 unsigned int Texture2D::id() const

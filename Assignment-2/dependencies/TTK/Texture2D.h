@@ -13,11 +13,14 @@
 #define GLEW_STATIC
 #include "glew/glew.h"
 #include <memory>
+#include <fstream>
 
 class  Texture2D
 {
 public:
 	typedef std::shared_ptr<Texture2D> Ptr;
+	
+	 char  Name[16];
 
 	 Texture2D();
 	 Texture2D::Texture2D(int _id, int _width, int _height, GLenum target);
@@ -30,12 +33,13 @@ public:
 	// Returns texture pixel internal format
 	 GLenum internalFormat();
 
-
 	// Binds / unbinds texture
 	 void bind(GLenum textureUnit = GL_TEXTURE0);
 	 void unbind(GLenum textureUnit = GL_TEXTURE0);
 
 	 void loadTextureFromFile(std::string filePath);
+
+	 std::string getPath() const { return m_pFileName; }
 
 	// Description:
 	// Creates the texture, allocates memory and uploads data to GPU
@@ -54,6 +58,12 @@ public:
 	// Description:
 	// Deletes texture allocated on the GPU
 	 void deleteTexture();
+	 
+	 // Writes all relevant data into a file, does not compress the texture data
+	 void writeToFile(std::fstream& stream);
+
+	 // reads all relevent data from a flat file stream 
+	 void readFromFile(std::fstream& stream);
 
 	// Returns OpenGL texture id
 	 unsigned int id() const;
@@ -75,6 +85,8 @@ private:
 	GLenum m_pTextureUnit;
 
 	GLenum m_pTarget; // usually GL_TEXTURE_2D
+
+	std::string m_pFileName;
 
 	void* m_pDataPtr;
 };
