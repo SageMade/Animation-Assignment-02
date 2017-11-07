@@ -194,7 +194,7 @@ struct TextureCollectionEditor {
 					ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
 
 					int count = 0;
-					for (int ix = 0; ix < 32; ix++) {
+					for (int ix = 1; ix < 32; ix++) {
 						const Texture2D& tex = TextureCollection::Get(ix);
 						if (tex.id() != 0) {
 							count++;
@@ -236,7 +236,7 @@ struct TextureCollectionEditor {
 			}
 
 			if (myDialog.DrawDialog() == 1) {
-				for (int ix = 0; ix < 32; ix++) {
+				for (int ix = 1; ix < 32; ix++) {
 					if (TextureCollection::Get(ix).id() == 0) {
 						TextureCollection::LoadTexture(ix, myDialog.GetFile().c_str());
 						Renderer::SetTexture(ix, TextureCollection::Get(ix).id());
@@ -993,7 +993,7 @@ int main(int argc, char **argv)
 	// Init IMGUI
 	TTK::Graphics::InitImGUI();
 
-	Renderer::Init();
+	Renderer::Init(); 
 
 	glutMainLoop();
 

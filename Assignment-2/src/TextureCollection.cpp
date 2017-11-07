@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "Renderer.h"
 #include "FileHelpers.h"
 
 Texture2D TextureCollection::myTextures[255];
@@ -43,5 +44,6 @@ void TextureCollection::ReadFromFile(std::fstream & stream) {
 	for (int ix = 0; ix < count; ix++) {
 		Read(stream, location);
 		myTextures[location].readFromFile(stream);
+		Renderer::SetTexture(location, myTextures[location].id());
 	}
 }

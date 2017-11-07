@@ -125,7 +125,8 @@ void ParticleEffect::Draw() {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glDisable(GL_BLEND);
+	//glDisable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_DST_ALPHA);
 	Renderer::FullscreenQuad(myRenderTexture);
 
 #endif
