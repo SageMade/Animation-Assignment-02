@@ -181,6 +181,8 @@ FileDialog SaveFileDlg;
 
 AdaptiveCurve<glm::vec2> curve;
 
+void WindowReshapeCallbackFunction(int w, int h);
+
 void InitializeScene()
 {	
 	OpenFileDlg.Show = false;
@@ -197,21 +199,6 @@ void InitializeScene()
 	Settings.EffectSettings = ParticleEffectSettings();
 
 	LayerConfig config;
-	// Physics properties
-	config.Velocity0     = glm::vec3(-120.0f,  120.0f, 0.0f);
-	config.Velocity1     = glm::vec3( 120.0f,  120.0f, 0.0f);
-	config.VelocityRange = glm::vec2(75.0f, 100.0f);
-	config.MassRange     = glm::vec2(0.5f, 0.75f);
-	config.Position      = mousePositionFlipped;
-
-	// Visuals
-	config.BlendMode     = ParticleBlend::BlendAdditive;
-	config.InitColor  = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	config.FinalColor = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-	config.LifeRange  = glm::vec2(0.0f, 10.0f);
-	config.SizeRange  = glm::vec2(25.0f, 40.0f);
-	config.TextureID  = 1;
-
 	memcpy(config.Name, "Default", 8);
 
 	ParticleLayerSettings settings = ParticleLayerSettings();
@@ -233,11 +220,11 @@ void InitializeScene()
 
 	TextureCollection::LoadTexture(1, "res/snow.png");
 	TextureCollection::LoadTexture(2, "res/flare.png");
-
-	Renderer::ProjectionMatrix = glm::ortho(0.0f, (float)TTK::Graphics::ScreenWidth, 0.0f, (float)TTK::Graphics::ScreenHeight);
-
-	Renderer::SetTexture(0, TextureCollection::Get(1).id());
+	
+	//Renderer::SetTexture(0, TextureCollection::Get(1).id());
 	Renderer::SetTexture(1, TextureCollection::Get(2).id());
+
+    WindowReshapeCallbackFunction(TTK::Graphics::ScreenWidth, TTK::Graphics::ScreenHeight);
 }
 
 // These values are controlled by imgui
@@ -416,6 +403,7 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 				ImGui::Combo(" Velocity Type", (int*)&settings.Config.VelocityType, "Cone/Line\0Box\0\0");
 				ImGui::DragFloat3(" Velocity 0", &settings.Config.Velocity0[0]);
 				ImGui::DragFloat3(" Velocity 1", &settings.Config.Velocity1[0]);
+				ImGui::DragFloat2(" Angular Range", &settings.Config.AngularSpeedRange[0]);
 				ImGui::DragFloat2(" Velocity Range", &settings.Config.VelocityRange[0]);
 				ImGui::DragFloat2(" Mass Range", &settings.Config.MassRange[0], 0.1f, 0.01f, 1000.0f);
 			}
@@ -493,70 +481,67 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 }
 
 void DisplayEffectConfig(ParticleEffectSettings& settings) {
-	ImGui::InputText(" Effect", settings.Name, 32);
+	ImGui::Text("Effect Config");
+	ImGui::InputText(" Name", settings.Name, 32);
+	ImGui::Separator();
+	ImGui::Text("Layers: ");
+	ImGui::SameLine();
+	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
+	if (ImGui::Button("+")) {
+		ParticleLayerSettings toAdd = ParticleLayerSettings();
+		toAdd.Config.TextureID = 1;
+		sprintf(toAdd.Config.Name, "Layer %i", settings.Layers.size());
 
-	if (ImGui::TreeNode("Layers")) {
-		ImGui::Text("Add new: ");
-		ImGui::SameLine();
-		ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.0f));
-		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
-		if (ImGui::Button("+")) {
-			ParticleLayerSettings toAdd = ParticleLayerSettings();
-			toAdd.Config.TextureID = 1;
-			sprintf(toAdd.Config.Name, "Layer %i", settings.Layers.size());
-
-			particleEffect.AddLayer(toAdd);
+		particleEffect.AddLayer(toAdd);
 			
-			settings.Layers.push_back(toAdd);
-			// Since vectors reallocate, we need to refresh all our pointers
-			for (int ix = 0; ix < settings.Layers.size(); ix++)
-				settings.Layers[ix] = particleEffect.Layers[ix]->Settings;
-		}
-		ImGui::PopStyleColor(2);
-		ImGui::PopStyleVar(1);
+		settings.Layers.push_back(toAdd);
+		// Since vectors reallocate, we need to refresh all our pointers
+		for (int ix = 0; ix < settings.Layers.size(); ix++)
+			settings.Layers[ix] = particleEffect.Layers[ix]->Settings;
+	}
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar(1);
 
-		for (int ix = 0; ix < settings.Layers.size(); ix++) {
-			ImGui::PushID(ix);
-			ImGui::Separator();
-			ImGui::InputText("Name", settings.Layers[ix].Config.Name, MAX_LAYER_NAME_SIZE);
-			if (ImGui::Button("Edit")) {
-				Settings.ActiveEditLayer = &particleEffect.Layers[ix]->Settings;
-			}
+	for (int ix = 0; ix < settings.Layers.size(); ix++) {
+		ImGui::PushID(ix);
+		ImGui::Separator();
+		ImGui::InputText("Name", settings.Layers[ix].Config.Name, MAX_LAYER_NAME_SIZE);
+		if (ImGui::Button("Edit")) {
+			Settings.ActiveEditLayer = &particleEffect.Layers[ix]->Settings;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Remove")) {
+			settings.Layers.erase(settings.Layers.begin() + ix);
+			particleEffect.ReplaceSettings(Settings.EffectSettings);
+			ix--;
+		}
+		if (ix > 0) {
 			ImGui::SameLine();
-			if (ImGui::Button("Remove")) {
-				settings.Layers.erase(settings.Layers.begin() + ix);
-				particleEffect.ReplaceSettings(Settings.EffectSettings);
-				ix--;
-			}
-			if (ix > 0) {
-				ImGui::SameLine();
-				if (ImGui::Button("^")) {
-					ParticleLayerSettings temp = settings.Layers[ix - 1];
-					settings.Layers[ix - 1] = settings.Layers[ix];
-					settings.Layers[ix] = temp;
+			if (ImGui::Button("^")) {
+				ParticleLayerSettings temp = settings.Layers[ix - 1];
+				settings.Layers[ix - 1] = settings.Layers[ix];
+				settings.Layers[ix] = temp;
 
-					ParticleLayer * tempLayer = particleEffect.Layers[ix -1];
-					particleEffect.Layers[ix - 1] = particleEffect.Layers[ix];
-					particleEffect.Layers[ix] = tempLayer;
-				}
+				ParticleLayer * tempLayer = particleEffect.Layers[ix -1];
+				particleEffect.Layers[ix - 1] = particleEffect.Layers[ix];
+				particleEffect.Layers[ix] = tempLayer;
 			}
-			if (ix < settings.Layers.size() - 1) {
-				ImGui::SameLine();
-				if (ImGui::Button("v")) {
-					ParticleLayerSettings temp = settings.Layers[ix + 1];
-					settings.Layers[ix + 1] = settings.Layers[ix];
-					settings.Layers[ix] = temp;
-
-					ParticleLayer * tempLayer = particleEffect.Layers[ix + 1];
-					particleEffect.Layers[ix + 1] = particleEffect.Layers[ix];
-					particleEffect.Layers[ix] = tempLayer;
-				}
-			}
-			ImGui::PopID();
 		}
+		if (ix < settings.Layers.size() - 1) {
+			ImGui::SameLine();
+			if (ImGui::Button("v")) {
+				ParticleLayerSettings temp = settings.Layers[ix + 1];
+				settings.Layers[ix + 1] = settings.Layers[ix];
+				settings.Layers[ix] = temp;
 
-		ImGui::TreePop();
+				ParticleLayer * tempLayer = particleEffect.Layers[ix + 1];
+				particleEffect.Layers[ix + 1] = particleEffect.Layers[ix];
+				particleEffect.Layers[ix] = tempLayer;
+			}
+		}
+		ImGui::PopID();
 	}
 }
 
@@ -750,7 +735,9 @@ void WindowReshapeCallbackFunction(int w, int h)
 	if (!followMouse)
 		particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
 
-	Renderer::ProjectionMatrix = glm::ortho(0.0f, (float)TTK::Graphics::ScreenWidth, 0.0f, (float)TTK::Graphics::ScreenHeight);
+	//Renderer::WorldTransform = glm::translate(glm::vec3(0, 0, 0.5f));
+	Renderer::ProjectionMatrix = glm::orthoLH(0.0f, (float)TTK::Graphics::ScreenWidth, 0.0f, (float)TTK::Graphics::ScreenHeight, 0.0f, 1000.0f);
+	//Renderer::ProjectionMatrix = glm::perspectiveFov(glm::radians(70.0f), (float)TTK::Graphics::ScreenWidth, (float)TTK::Graphics::ScreenHeight, 0.1f, 1000.0f);
 }
 
 // This is called when a mouse button is clicked

@@ -4,6 +4,8 @@
 #include <stack>
 #include "GLM.h"
 
+#include <TTK/Texture2D.h>
+
 #define PARTICLE_BATCH_SIZE 1000
 #define RENDERER_MAX_TEXTURES 8
 
@@ -11,6 +13,7 @@ struct ParticleVertex {
 	glm::vec3 Position;
 	glm::vec4 Color;
 	float     Size;
+	float     Angle;
 	float     TexId;
 };
 
@@ -27,7 +30,7 @@ class Renderer {
 
 		static void SetActiveTexture(const uint8_t slot);
 
-		static void Submit(const glm::vec3 &pos, const glm::vec4& color, const float size = 1.0f, uint8_t texture = 255); 
+		static void Submit(const glm::vec3 &pos, const glm::vec4& color, const float angle = 0.0f, const float size = 1.0f, uint8_t texture = 255); 
 
 		static void Flush();
 		
@@ -49,6 +52,8 @@ class Renderer {
 		static uint32_t myShaderProgram;
 
 		static uint8_t  myActiveTexture;
+
+		static Texture2D myDefaultTexture;
 		
 		static glm::mat4 myActiveMatrix;
 		static std::stack<glm::mat4> myMatrixStack;

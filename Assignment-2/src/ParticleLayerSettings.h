@@ -121,27 +121,31 @@ struct LayerConfig {
 	ParticleBlend BlendMode;
 	bool          InterpolateColor;
 
+	// Stores the range for angular speed range
+	glm::vec2     AngularSpeedRange;
+
 	LayerConfig() :
 		Position(glm::vec3(0.0f)),
 		Gravity(glm::vec3(0.0f)),
-		EmissionRate(1.0f),
+		EmissionRate(100.0f),
 		Duration(0.0f),
 		InitColor(glm::vec4(1.0f)),
 		FinalColor(glm::vec4(0.0f)),
 		VelocityType(EmitterVelocityType::VelocityConeLine),
-		Velocity0(glm::vec3(0.0f)),
-		Velocity1(glm::vec3(0.0f)),
+		Velocity0(glm::vec3(-10.0f, 10.0f, 0.0f)),
+		Velocity1(glm::vec3( 10.0f, 10.0f, 0.0f)),
 		VelocityRange(glm::vec2(0.0f)),
-		LifeRange(glm::vec2(0.0f, 1.0f)),
-		SizeRange(glm::vec2(10.0f, 100.0f)),
+		LifeRange(glm::vec2(0.0f, 5.0f)),
+		SizeRange(glm::vec2(10.0f, 25.0f)),
 		MassRange(glm::vec2(1.0f)),
 		BoundsType(EmitterType::Point),
 		BoundsMeta(glm::vec3(0.0f)),
-		BlendMode(ParticleBlend::BlendMultiply),
+		BlendMode(ParticleBlend::BlendAdditive),
 		InterpolateColor(true),
 		MaxParticles(MAX_PARTICLES_PER_LAYER),
 		TextureID(0),
-		Index(0)
+		Index(0),
+		AngularSpeedRange(glm::vec2(-1.0f, 1.0f))
 		{
 	}
 };

@@ -28,6 +28,8 @@ glm::mat4 Renderer::ProjectionMatrix = glm::mat4();
 glm::mat4 Renderer::myActiveMatrix = glm::mat4();
 std::stack<glm::mat4> Renderer::myMatrixStack;
 
+Texture2D Renderer::myDefaultTexture;
+
 void Renderer::Init() {
     myVertexBufferData = new ParticleVertex[PARTICLE_BATCH_SIZE];
 
@@ -36,17 +38,20 @@ void Renderer::Init() {
 		struct VsVert {
 			vec4  Color;
 			float Size;
+            float Angle;
 			float TexId;
 		};
         layout (location = 0) in vec3 Position;
         layout (location = 1) in vec4 Color;
         layout (location = 2) in float Size;
-        layout (location = 3) in float TexId;
+        layout (location = 3) in float Angle;
+        layout (location = 4) in float TexId;
 		out VsVert VsToGs;
 		void main() {
 			VsToGs.Color = Color;
 			VsToGs.TexId = TexId;
 			VsToGs.Size = Size;
+            VsToGs.Angle = Angle;
 			gl_Position = xWorld * vec4(Position, 1);
 		})LIT";
 
@@ -59,6 +64,7 @@ void Renderer::Init() {
 		struct VsVert {
 			vec4  Color;
 			float Size;
+            float Angle;
 			float TexId;
 		};
 		struct GsVert {
@@ -70,9 +76,36 @@ void Renderer::Init() {
 
 		out GsVert GsToFS;
 
+		mat4 rotationMatrixZ(float angle)
+		{ 
+			float s = sin(angle);
+			float c = cos(angle);
+			float oc = 1.0 - c;
+    
+			mat4 rotateZ;
+			rotateZ[0].x    = c;
+			rotateZ[0].y    = -s;
+			rotateZ[0].z    = 0.0;
+			rotateZ[0].w    = 0.0;
+			rotateZ[1].x    = s;
+			rotateZ[1].y    = c;
+			rotateZ[1].z    = 0.0;
+			rotateZ[1].w    = 0.0;
+			rotateZ[2].x    = 0.0;
+			rotateZ[2].y    = 0.0;
+			rotateZ[2].z    = 1.0;
+			rotateZ[2].w    = 0.0;
+			rotateZ[3].x    = 0.0;
+			rotateZ[3].y    = 0.0;
+			rotateZ[3].z    = 0.0;
+			rotateZ[3].w    = 1.0;
+
+            return rotateZ;
+		}
+
 		void main() {
 			// Calculate our shader stuff (basically where in the view it is)
-			mat4 MV = xView * xWorld;
+			mat4 MV = rotationMatrixZ(VsToGs[0].Angle) * xView * xWorld;
 			mat4 VP = xProjection * xView;
 			vec3 right = vec3(MV[0][0], 
 			        MV[1][0], 
@@ -176,6 +209,22 @@ void Renderer::Init() {
 		glGetShaderInfoLog(g_VertHandle, logSize, &logSize, log);
 		delete[] log;
 	}
+	glGetShaderiv(g_GeoHandle, GL_COMPILE_STATUS, &success);
+
+	// If we failed to compile
+	if (success == GL_FALSE) {
+		// Get the size of the error log
+		GLint logSize = 0;
+		glGetShaderiv(g_GeoHandle, GL_INFO_LOG_LENGTH, &logSize);
+
+		// Create a new character buffer for the log
+		char* log = new char[logSize];
+
+		// Get the log
+		glGetShaderInfoLog(g_GeoHandle, logSize, &logSize, log);
+		delete[] log;
+	}
+
 	glGetProgramiv(myShaderProgram, GL_LINK_STATUS, &success);
 
 	// If not, we need to grab the log and throw an exception
@@ -211,11 +260,25 @@ void Renderer::Init() {
 	glVertexAttribPointer(2, 1, GL_FLOAT, false, sizeof(ParticleVertex), (void*)(7 * sizeof(float)));
 	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(3, 1, GL_FLOAT, false, sizeof(ParticleVertex), (void*)(8 * sizeof(float)));
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 1, GL_FLOAT, false, sizeof(ParticleVertex), (void*)(9 * sizeof(float)));
+
+	error = glGetError();
 
 	glBindVertexArray(0);
 
 	glBindVertexArray(prevVao);
 	glBindBuffer(GL_ARRAY_BUFFER, prevVbo);
+
+	uint8_t data[4] = {
+		255U, 255U, 255U, 255U
+	};
+	myDefaultTexture.createTexture(1, 1, GL_TEXTURE_2D, GL_LINEAR, GL_REPEAT, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	//delete[] data;
+
+	error = glGetError();
+
+	myTextureHandles[0] = myDefaultTexture.id();
 }
 
 void Renderer::PushMatrix(glm::mat4 world) {
@@ -234,13 +297,14 @@ void Renderer::SetActiveTexture(const uint8_t slot) {
 	myActiveTexture = slot;
 }
 
-void Renderer::Submit(const glm::vec3 &pos, const glm::vec4& color, const float size, uint8_t texture) {
+void Renderer::Submit(const glm::vec3 &pos, const glm::vec4& color, const float angle,  const float size, uint8_t texture) {
 	if (texture == 255)
 		texture = myActiveTexture;
 
 	myVertexBufferData[myActiveParticleCount].Position = (pos.xyzz * myActiveMatrix).xyz;
 	myVertexBufferData[myActiveParticleCount].Color    = color;
 	myVertexBufferData[myActiveParticleCount].Size     = size;
+	myVertexBufferData[myActiveParticleCount].Angle    = angle;
 	myVertexBufferData[myActiveParticleCount].TexId    = texture;
 
 	myActiveParticleCount++;

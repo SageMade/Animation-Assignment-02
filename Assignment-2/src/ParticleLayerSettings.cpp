@@ -18,7 +18,7 @@ void ParticleLayerSettings::WriteToFile(std::fstream & stream) {
 ParticleLayerSettings ParticleLayerSettings::ReadFromFile(std::fstream & stream)
 {
 	ParticleLayerSettings result = ParticleLayerSettings();
-	Read(stream, &result.Config);
+	Read(stream, &result.Config, sizeof(result.Config));
 	uint32_t size = 0;
 	stream >> size;
 	for (int ix = 0; ix < size; ix++) {

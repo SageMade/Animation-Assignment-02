@@ -9,6 +9,8 @@
 #include "TextureCollection.h"
 #include "Renderer.h"
 
+#define RAND_T glm::linearRand(0.0f, 1.0f)
+
 glm::vec3 CalculateRandomConeNormal(glm::vec3 coneDir, float coneAngle) {
 	glm::vec3 result;
 
@@ -106,7 +108,9 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 
 					particle->position = Settings.Config.Position + origin;
 
-					particle->size = Math::lerpRange(Settings.Config.SizeRange, randomTval);
+					particle->size = Math::lerpRange(Settings.Config.SizeRange, RAND_T);
+
+					particle->angularVelocity = Math::lerpRange(Settings.Config.AngularSpeedRange, RAND_T);
 
 					switch (Settings.Config.VelocityType) {
 						default:
@@ -139,6 +143,8 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 			// Decrease particle life
 			particle->life -= dt;
 
+			particle->angle += particle->angularVelocity * dt;
+
 			// Update visual properties
 			if (Settings.Config.InterpolateColor)
 			{
@@ -170,7 +176,7 @@ void ParticleLayer::draw(glm::vec3 origin)
 	{
 		if (p->life >= 0.0f) // if particle is alive, draw it
 		{
-			Renderer::Submit(p->position, p->colour, p->size, p->texture);
+			Renderer::Submit(p->position, p->colour, p->angle, p->size, p->texture);
 		}
 	}
 

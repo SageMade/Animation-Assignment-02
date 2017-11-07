@@ -22,6 +22,7 @@ struct Particle
 	glm::vec3 velocity;
 	glm::vec3 acceleration;
 	glm::vec3 force;
+	float angularVelocity;
 	float mass;
 
 	// Visual Properties
@@ -29,7 +30,7 @@ struct Particle
 	glm::vec4 colour;
 	// Other properties... 
 	// ie. sprite sheet
-
+	float angle;
 	float life;
 	uint8_t texture;
 };
