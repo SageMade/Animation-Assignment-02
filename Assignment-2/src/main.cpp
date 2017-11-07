@@ -110,7 +110,7 @@ struct FileDialog {
 				ImGui::Text("File: ");
 				ImGui::SameLine();
 				if (Mode == OpenFileMode) {
-					ImGui::Text(mySelectedFile.c_str());
+					ImGui::Text(fs::path(mySelectedFile).filename().string().c_str());
 				}
 				else {
 					ImGui::InputText("", myBuffer, 255);
@@ -160,7 +160,7 @@ struct FileDialog {
 				if (fPtr.status().type() != fs::file_type::directory) {
 					if (strcmp(fPtr.path().extension().string().c_str(), Filter.c_str()) == 0) {
 						if (ImGui::Button(fPtr.path().filename().string().c_str())) {
-							mySelectedFile = fPtr.path().filename().string();
+							mySelectedFile = fPtr.path().string();
 							if (Mode == SaveFileMode)
 								memcpy(myBuffer, mySelectedFile.c_str(), mySelectedFile.size() + 1);
 						}
@@ -218,8 +218,8 @@ void InitializeScene()
 
 	particleEffect.Init();
 
-	TextureCollection::LoadTexture(1, "res/snow.png");
-	TextureCollection::LoadTexture(2, "res/flare.png");
+	TextureCollection::LoadTexture(1, "textures/snow.png");
+	TextureCollection::LoadTexture(2, "textures/flare.png");
 	
 	//Renderer::SetTexture(0, TextureCollection::Get(1).id());
 	Renderer::SetTexture(1, TextureCollection::Get(2).id());

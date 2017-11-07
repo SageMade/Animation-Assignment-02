@@ -167,7 +167,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)res\"  /e /c /f /y /s</Command>
+      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)"  /e /c /f /y /s</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -185,7 +185,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)res\"  /e /c /f /y /s</Command>
+      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)"  /e /c /f /y /s</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -208,7 +208,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)res\"  /e /c /f /y /s</Command>
+      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)"  /e /c /f /y /s</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -231,7 +231,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)res\"  /e /c /f /y /s</Command>
+      <Command>xcopy "$(ProjectDir)res\*" "$(OutputPath)"  /e /c /f /y /s</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
