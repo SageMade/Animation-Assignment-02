@@ -76,6 +76,9 @@ struct SteeringBehaviour {
 		memset(Name, '\0', BEHAVIOUR_NAME_SIZE);
 	}
 
+	void WriteToFile(std::fstream& stream);
+	static SteeringBehaviour ReadFromFile(std::fstream& stream);
+
 	template <typename T>
 	void SetData(T *data) {
 		MetaSize = sizeof(T);

@@ -67,6 +67,25 @@ ParticleEffect particleEffect;
 char inFileName[256];
 char outFileName[256];
 
+void relativitify(std::string& path) {
+	static std::string workingDir = fs::current_path().string();
+	std::string workingDirWorking = workingDir;
+
+	int start = 0;
+	int end = 0;
+	for (int ix = 0; ix <= workingDir.size(); ix++) {
+		if (workingDir[ix] == path[ix])
+			end = ix + 1;
+		else
+			break;
+	}
+	path.erase(path.begin() + start, path.begin() + end + 1);
+	workingDirWorking.erase(workingDirWorking.begin() + start, workingDirWorking.begin() + end);
+
+	if (workingDirWorking.size() > 0) {
+		throw("To be implemented");
+	}
+}
 
 struct EditorSettings {
 	ParticleLayerSettings  *ActiveEditLayer = nullptr;
@@ -201,8 +220,7 @@ struct TextureCollectionEditor {
 
 							if (ImGui::ImageButton((ImTextureID)&tex, ImVec2(100, 100))) {
 								EditingTexture = ix;
-								std::string fileName = tex.getPath();
-								memcpy(myTexturePath, fileName.c_str(), fileName.size() + 1);
+								memcpy(myTexturePath, tex.FileName, 256);
 							}
 							if ((count % 3))
 								ImGui::SameLine();
@@ -218,8 +236,9 @@ struct TextureCollectionEditor {
 
 						Texture2D& tex = TextureCollection::Get(EditingTexture);
 
+						ImGui::Text("ID: %i", EditingTexture);
 						ImGui::InputText("Name", tex.Name, 16);
-						ImGui::InputText("Path", myTexturePath, 255);
+						ImGui::InputText("Path", tex.FileName, 256);
 						ImGui::SameLine();
 						if (ImGui::Button("Browse")) {
 							myDialog.Show = true;
@@ -236,19 +255,23 @@ struct TextureCollectionEditor {
 			}
 
 			if (myDialog.DrawDialog() == 1) {
+
 				for (int ix = 1; ix < 32; ix++) {
 					if (TextureCollection::Get(ix).id() == 0) {
-						TextureCollection::LoadTexture(ix, myDialog.GetFile().c_str());
+						std::string name = myDialog.GetFile();
+						relativitify(name);
+						TextureCollection::LoadTexture(ix, name.c_str());
 						Renderer::SetTexture(ix, TextureCollection::Get(ix).id());
 						break;
 					}
 				}
+
 			}
 		}
 
 	private:
 		char       myTextureName[16];
-		char       myTexturePath[255];
+		char       myTexturePath[256];
 		FileDialog myDialog;
 };
 
@@ -311,7 +334,8 @@ void InitializeScene()
 // These values are controlled by imgui
 bool applySeekingForce = true;
 bool followMouse = false;
-float seekingForceScale = 100.0f;
+bool prevFollowMouse = true;
+float seekingForceScale    = 100.0f;
 float minSeekingForceScale = -200.0f;
 float maxSeekingForceScale = 200.0f; 
 
@@ -409,10 +433,7 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 	ImGui::InputText(" Name", behaviour.Name, BEHAVIOUR_NAME_SIZE);
 	ImGui::DragFloat(" Weight", &behaviour.Weight, 0.1f, 0.0f, 1.0f);
 	ImGui::Combo(" Method", (int*)&behaviour.Method, "None\0Seek\0Flee\0Repel\0Attract\0Path\0\0");
-
-	if (behaviour.Method != Unknown)
-		ImGui::Separator();
-
+	
 	switch (behaviour.Method) {
 		case Seek: {
 			if (behaviour.MetaData == nullptr) {
@@ -558,13 +579,19 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 				}
 				ImGui::PopStyleColor(2);
 				ImGui::PopStyleVar(1);
+				static char label[23] = "                      ";
 
 				for (int ix = 0; ix < settings.Behaviours.size(); ix++) {
 					ImGui::Separator();
-					if (ImGui::TreeNode(settings.Behaviours[ix].Name)) {
+					ImGui::PushID(ix);
+					int count = strlen(settings.Behaviours[ix].Name);
+					memcpy(label, settings.Behaviours[ix].Name, count);
+					memcpy(label + count, "###foo", 7);
+					if (ImGui::TreeNode(label)) {
 						if (ImGui::Button("Remove")) {
 							settings.Behaviours.erase(settings.Behaviours.begin() + ix);
 							ix--;
+							ImGui::TreePop();
 							ImGui::PopID();
 							continue;
 						}
@@ -572,6 +599,7 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 						DisplaySteeringBehaviour(settings.Behaviours[ix]);
 						ImGui::TreePop();
 					}
+					ImGui::PopID();
 				}
 			}
 
@@ -592,7 +620,7 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.0f));
 	ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
 	ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
-	if (ImGui::Button("+")) {
+	if (ImGui::Button("+###addLayer")) {
 		ParticleLayerSettings toAdd = ParticleLayerSettings();
 		toAdd.Config.TextureID = 1;
 		sprintf(toAdd.Config.Name, "Layer %i", settings.Layers.size());
@@ -610,7 +638,8 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 	for (int ix = 0; ix < settings.Layers.size(); ix++) {
 		ImGui::PushID(ix);
 		ImGui::Separator();
-		ImGui::InputText("Name", settings.Layers[ix].Config.Name, MAX_LAYER_NAME_SIZE);
+		ImGui::InputText("Name", particleEffect.Layers[ix]->Settings.Config.Name, MAX_LAYER_NAME_SIZE);
+		memcpy(settings.Layers[ix].Config.Name, particleEffect.Layers[ix]->Settings.Config.Name, MAX_LAYER_NAME_SIZE);
 		if (ImGui::Button("Edit")) {
 			Settings.ActiveEditLayer = &particleEffect.Layers[ix]->Settings;
 		}
@@ -644,6 +673,44 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 				particleEffect.Layers[ix] = tempLayer;
 			}
 		}
+		ImGui::PopID();
+	}
+
+	ImGui::Separator();
+	ImGui::Text("Behaviours: ");
+	ImGui::SameLine();
+	ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.0f));
+	ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
+	if (ImGui::Button("+###addBehaviour")) {
+		SteeringBehaviour toAdd = SteeringBehaviour();
+		sprintf(toAdd.Name, "Behaviour %i", particleEffect.Behaviours.size());
+
+		particleEffect.AddBehaviour(toAdd);
+	}
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar(1); 
+
+	for (int ix = 0; ix < particleEffect.Behaviours.size(); ix++) {
+		ImGui::Separator();
+		static char label[23] = "                      ";
+		ImGui::PushID(ix);
+		int count = strlen(particleEffect.Behaviours[ix].Name);
+		memcpy(label, particleEffect.Behaviours[ix].Name, count);
+		memcpy(label + count, "###foo", 7);
+
+		if (ImGui::TreeNode(label)) {
+			if (ImGui::Button("Remove")) {
+				particleEffect.Behaviours.erase(particleEffect.Behaviours.begin() + ix);
+				ix--;
+				ImGui::TreePop();
+				ImGui::PopID();
+				continue;
+			}
+			DisplaySteeringBehaviour(particleEffect.Behaviours[ix]);
+			ImGui::TreePop();
+		}
+
 		ImGui::PopID();
 	}
 }
@@ -696,6 +763,7 @@ void DisplayCallbackFunction(void)
 			if (ImGui::MenuItem("Create new effect")) {
 				Settings.EffectSettings = ParticleEffectSettings();
 				particleEffect.ReplaceSettings(Settings.EffectSettings);
+				Settings.ActiveEditLayer = nullptr;
 
 				if (!followMouse)
 					particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
@@ -735,6 +803,11 @@ void DisplayCallbackFunction(void)
 
 			ImGui::Checkbox("Follow Mouse", &followMouse);
 			ImGui::DragFloat3("Effect Pos", &particleEffect.Origin[0]);
+
+			if (!followMouse && prevFollowMouse)
+				particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
+
+			prevFollowMouse = followMouse;
 		}
 
 		/*
@@ -805,7 +878,7 @@ void KeyboardUpCallbackFunction(unsigned char key, int x, int y)
 	ImGuiIO& io = ImGui::GetIO();
 	io.KeysDown[key] = false;
 
-	switch (key)
+	switch (key) 
 	{
 	default:
 		break;

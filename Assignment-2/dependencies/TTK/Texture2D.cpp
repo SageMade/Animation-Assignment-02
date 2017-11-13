@@ -15,6 +15,7 @@ Texture2D::Texture2D()
 	m_pTexHeight(0),
 	m_pTexID(0)
 {
+	memset(FileName, 0, 256);
 }
 
 Texture2D::Texture2D(int _id, int _width, int _height, GLenum target)
@@ -23,6 +24,7 @@ Texture2D::Texture2D(int _id, int _width, int _height, GLenum target)
 	m_pTexWidth = _width;
 	m_pTexHeight = _height;
 	m_pTarget = target;
+	memset(FileName, 0, 256);
 }
 
 Texture2D::~Texture2D()
@@ -67,7 +69,7 @@ void Texture2D::loadTextureFromFile(std::string filePath)
 	// Check to see if we got any data
 	if (data) {
 		createTexture(width, height, GL_TEXTURE_2D, GL_LINEAR, GL_CLAMP_TO_EDGE, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		m_pFileName = filePath;
+		memcpy(FileName, filePath.c_str(), filePath.size());
 		fs::path p = fs::path(filePath);
 		std::string fileName = p.stem().string();
 		memcpy(Name, fileName.c_str(), std::max(fileName.size(), (size_t)16));
@@ -146,7 +148,7 @@ void Texture2D::writeToFile(std::fstream & stream) {
 	Write(stream, m_pTarget);
 	Write(stream, m_pTexWidth);
 	Write(stream, m_pTexHeight);
-	bool writeData = m_pFileName == "";
+	bool writeData = FileName[0] == '\0';
 	Write(stream, writeData);
 	if (writeData) {
 		int pixelSize = 1;
@@ -169,9 +171,9 @@ void Texture2D::writeToFile(std::fstream & stream) {
 		Write(stream, m_pDataPtr, m_pTexWidth * m_pTexHeight * pixelSize);
 	}
 	else {
-		size_t size = m_pFileName.size() + 1;
+		size_t size = strlen(FileName);
 		Write(stream, size);
-		Write(stream, m_pFileName.c_str(), size);
+		Write(stream, FileName, size);
 	}
 }
 
@@ -213,8 +215,8 @@ void Texture2D::readFromFile(std::fstream & stream) {
 		Read(stream, stringSize);
 		char* data = new char[stringSize];
 		Read(stream, data, stringSize);
-		m_pFileName = data;
-		loadTextureFromFile(m_pFileName);
+		memcpy(FileName, data, stringSize);
+		loadTextureFromFile(FileName);
 	}
 }
 

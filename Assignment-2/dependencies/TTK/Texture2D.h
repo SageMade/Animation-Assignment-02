@@ -20,7 +20,8 @@ class  Texture2D
 public:
 	typedef std::shared_ptr<Texture2D> Ptr;
 	
-	 char  Name[16];
+	char Name[16];
+	char FileName[256];
 
 	 Texture2D();
 	 Texture2D::Texture2D(int _id, int _width, int _height, GLenum target);
@@ -38,9 +39,7 @@ public:
 	 void unbind(GLenum textureUnit = GL_TEXTURE0);
 
 	 void loadTextureFromFile(std::string filePath);
-
-	 std::string getPath() const { return m_pFileName; }
-
+	 
 	// Description:
 	// Creates the texture, allocates memory and uploads data to GPU
 	// If you do not want to upload data to the GPU pass in a nullptr for the dataPtr.
@@ -85,8 +84,6 @@ private:
 	GLenum m_pTextureUnit;
 
 	GLenum m_pTarget; // usually GL_TEXTURE_2D
-
-	std::string m_pFileName;
 
 	void* m_pDataPtr;
 };

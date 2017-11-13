@@ -10,8 +10,9 @@
 
 class ParticleEffect {
 public:
-	std::vector<ParticleLayer*> Layers;
-	char                        Name[EFFECT_NAME_MAX_LENGTH];
+	std::vector<ParticleLayer*>    Layers;
+	std::vector<SteeringBehaviour> Behaviours;
+	char                           Name[EFFECT_NAME_MAX_LENGTH];
 
 	ParticleEffect();
 	~ParticleEffect();
@@ -19,6 +20,7 @@ public:
 	void Init();
 
 	void AddLayer(ParticleLayerSettings settings);
+	void AddBehaviour(SteeringBehaviour behaviour);
 
 	void Restart();
 
@@ -34,6 +36,9 @@ public:
 	void ReplaceSettings(const ParticleEffectSettings& settings);
 
 	glm::vec3 Origin;
+
+	uint32_t  SourceBlend;
+	uint32_t  DestBlend;
 
 private:
 	uint32_t         myFramebuffer;

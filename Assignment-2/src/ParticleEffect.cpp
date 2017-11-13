@@ -13,6 +13,9 @@
 ParticleEffect::ParticleEffect() {
 	memset(Name, 0, EFFECT_NAME_MAX_LENGTH);
 	memcpy(Name, "Default", 8);
+
+	SourceBlend = GL_ONE;
+	DestBlend   = GL_DST_ALPHA;
 }
 
 ParticleEffect::~ParticleEffect()
@@ -98,6 +101,10 @@ void ParticleEffect::AddLayer(ParticleLayerSettings settings) {
 	
 }
 
+void ParticleEffect::AddBehaviour(SteeringBehaviour behaviour) {
+	Behaviours.push_back(behaviour);
+}
+
 void ParticleEffect::Restart() {
 	for (int ix = 0; ix < Layers.size(); ix++)
 		Layers[ix]->restart();
@@ -134,8 +141,8 @@ void ParticleEffect::Draw() {
 
 void ParticleEffect::WriteToFile(std::fstream & stream) {
 	Write(stream, Name, EFFECT_NAME_MAX_LENGTH);
-	size_t loc = stream.tellg();
-	size_t size = Layers.size();
+	size_t   loc = stream.tellg();
+	uint32_t size = Layers.size();
 	Write(stream, size);
 
 	loc = stream.tellg();
@@ -143,19 +150,31 @@ void ParticleEffect::WriteToFile(std::fstream & stream) {
 	for (int ix = 0; ix < Layers.size(); ix++) {
 		Layers[ix]->Settings.WriteToFile(stream);
 	} 
+
+	Write(stream, (uint32_t)Behaviours.size());
+
+	for (int ix = 0; ix < Behaviours.size(); ix++) {
+		Behaviours[ix].WriteToFile(stream);
+	}
 } 
 
 ParticleEffect ParticleEffect::ReadFromFile(std::fstream & stream) {
 	ParticleEffect result = ParticleEffect();
 	Read(stream, result.Name, EFFECT_NAME_MAX_LENGTH);
 	size_t loc = stream.tellg();
-	size_t count = 0;
+	uint32_t count = 0;
 	Read(stream, &count);
 
 	loc = stream.tellg();
 
 	for (int ix = 0; ix < count; ix++) {
 		result.Layers.push_back(new ParticleLayer(ParticleLayerSettings::ReadFromFile(stream)));
+	}
+
+	Read(stream, count);
+
+	for (int ix = 0; ix < count; ix++) {
+		result.Behaviours.push_back(SteeringBehaviour::ReadFromFile(stream));
 	}
 
 	return result;
