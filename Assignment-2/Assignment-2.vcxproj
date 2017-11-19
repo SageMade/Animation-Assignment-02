@@ -38,6 +38,7 @@
     <ClCompile Include="src\PointHandle.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\stb_proxy.cpp" />
+    <ClCompile Include="src\SteeringBehaviour.cpp" />
     <ClCompile Include="src\TextureCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -63,6 +64,7 @@
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\GLM.h" />
     <ClInclude Include="src\KeyframeController.h" />
+    <ClInclude Include="src\Particle.h" />
     <ClInclude Include="src\ParticleEffect.h" />
     <ClInclude Include="src\ParticleEffectSettings.h" />
     <ClInclude Include="src\ParticleLayer.h" />
@@ -70,6 +72,7 @@
     <ClInclude Include="src\PointHandle.h" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\stb_proxy.h" />
+    <ClInclude Include="src\SteeringBehaviour.h" />
     <ClInclude Include="src\TextureCollection.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

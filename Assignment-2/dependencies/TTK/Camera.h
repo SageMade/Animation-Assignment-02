@@ -67,6 +67,34 @@ namespace TTK
 			upVector = glm::normalize(upVector);
 		}
 
+		void applyYaw(float value) {
+			yaw += value;
+		}
+
+		void applyPitch(float value) {
+			pitch += value;
+		}
+
+		void recalculateVectors() {
+			// yaw rotation
+			forwardVector = glm::normalize(forwardVector);
+			forwardVector = glm::rotate(forwardVector, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			// recalculate right vector
+			rightVector = glm::cross(forwardVector, glm::vec3(0.0f, 1.0f, 0.0f));
+			rightVector = glm::normalize(rightVector);
+
+			// pitch rotation
+			forwardVector = glm::rotate(forwardVector, glm::radians(pitch), rightVector);
+
+			// calc up vector
+			upVector = glm::cross(rightVector, forwardVector);
+			upVector = glm::normalize(upVector);
+
+			yaw = 0.0f;
+			pitch = 0.0f;
+		}
+
 		void moveUp()
 		{
 			cameraPosition += glm::vec3(0.0f, 1.0f, 0.0f) * movementScalar;

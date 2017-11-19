@@ -39,7 +39,6 @@ void Renderer::Init() {
 
 	const char *vertex_shader = R"LIT(#version 410
 		uniform mat4 xWorld;
-        uniform mat4 xView;
 		struct VsVert {
 			vec4  Color;
 			float Size;
@@ -57,7 +56,7 @@ void Renderer::Init() {
 			VsToGs.TexId = TexId;
 			VsToGs.Size = Size;
             VsToGs.Angle = Angle;
-			gl_Position = xView * xWorld * vec4(Position, 1);
+			gl_Position = xWorld * vec4(Position, 1);
 		})LIT";
 
 	const char* geometry_shader = R"LIT(#version 410

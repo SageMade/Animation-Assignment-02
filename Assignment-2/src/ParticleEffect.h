@@ -27,8 +27,10 @@ public:
 	void Update(float dt);
 	void Draw();
 
+	glm::vec3 ApplyBehaviours(Particle* particle, float& totalWeight);
+
 	void WriteToFile(std::fstream& stream);
-	static ParticleEffect ReadFromFile(std::fstream& stream);
+	static ParticleEffect* ReadFromFile(std::fstream& stream);
 
 	void BakeFboToBmp(const char * filename);
 	void ResizeFbo(uint32_t width, uint32_t height);

@@ -89,6 +89,9 @@
       <Filter>Assignment\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\FileHelpers.cpp" />
+    <ClCompile Include="src\SteeringBehaviour.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AnimationMath.h">
@@ -179,6 +182,12 @@
       <Filter>ImGui\Headers</Filter>
     </ClInclude>
     <ClInclude Include="src\AdaptiveCurve.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SteeringBehaviour.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Particle.h">
       <Filter>Assignment\Header Files</Filter>
     </ClInclude>
   </ItemGroup>

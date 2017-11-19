@@ -8,8 +8,10 @@
 #include "ParticleLayer.h"
 #include "TextureCollection.h"
 #include "Renderer.h"
+#include "ParticleEffect.h"
 
-#define RAND_T glm::linearRand(0.0f, 1.0f)
+#define RAND_T   glm::linearRand(0.0f, 1.0f)
+#define RAND_RNG glm::linearRand(-1.0f, 1.0f)
 
 glm::vec3 CalculateRandomConeNormal(glm::vec3 coneDir, float coneAngle) {
 	glm::vec3 result;
@@ -27,20 +29,22 @@ glm::vec3 CalculateRandomConeNormal(glm::vec3 coneDir, float coneAngle) {
 	return glm::normalize(result);
 }
 
-ParticleLayer::ParticleLayer(ParticleLayerSettings settings) :
+ParticleLayer::ParticleLayer(ParticleEffect* parent, ParticleLayerSettings settings) :
 	m_pParticles(nullptr), 
 	m_pNumParticles(0),
 	m_pTimeSinceStart(0),
 	Settings(settings),
-	m_pTimeSinceEmitted(0) {
+	m_pTimeSinceEmitted(0),
+	m_pEffect(parent) {
 
 }
 
-ParticleLayer::ParticleLayer()
+ParticleLayer::ParticleLayer(ParticleEffect* parent)
 	: m_pParticles(nullptr),
 	m_pNumParticles(0),
 	m_pTimeSinceStart(0),
-	m_pTimeSinceEmitted(0)
+	m_pTimeSinceEmitted(0),
+	m_pEffect(parent)
 {
 
 }
@@ -101,37 +105,67 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 					// Respawn particle
 					// Note: we are not freeing memory, we are "Recycling" the particles
 					particle->acceleration = glm::vec3(0.0f);
+					particle->texture = Settings.Config.TextureID;
+
 					float randomTval = glm::linearRand(0.0f, 1.0f);
 					particle->colour = Math::lerp(Settings.Config.InitColor, Settings.Config.FinalColor, randomTval);
-					particle->life = Math::lerpRange(Settings.Config.LifeRange, randomTval);
-					particle->mass = Math::lerpRange(Settings.Config.MassRange, randomTval);
 
-					particle->position = Settings.Config.Position + origin;
+					float sizeMass = RAND_T;
+					particle->size = Math::lerpRange(Settings.Config.SizeRange, sizeMass);
+					particle->mass = Math::lerpRange(Settings.Config.MassRange, sizeMass);
+					particle->life = Math::lerpRange(Settings.Config.LifeRange, sizeMass);
 
-					particle->size = Math::lerpRange(Settings.Config.SizeRange, RAND_T);
-
-					particle->angularVelocity = Math::lerpRange(Settings.Config.AngularSpeedRange, RAND_T);
-
-					switch (Settings.Config.VelocityType) {
-						default:
-						case EmitterVelocityType::VelocityConeLine:
-							particle->velocity = (Math::lerp(Settings.Config.Velocity0, Settings.Config.Velocity1, glm::linearRand(0.0f, 1.0f)));
-							//particle->velocity *= glm::linearRand(Settings.Config.VelocityRange.x, Settings.Config.VelocityRange.y);
-
+					switch (Settings.Config.BoundsType) {
+						case EmitterType::Point:
+							particle->position = Settings.Config.Position + origin;							
 							break;
-						case EmitterVelocityType::VelocityBox:
-							particle->velocity = Math::lerp(Settings.Config.Velocity0, Settings.Config.Velocity1, glm::linearRand(0.0f, 1.0f));
+						case EmitterType::Box:
+							particle->position = Settings.Config.Position + origin;
+							particle->position.x += glm::linearRand(-Settings.Config.BoundsMeta.x, Settings.Config.BoundsMeta.x);
+							particle->position.y += glm::linearRand(-Settings.Config.BoundsMeta.y, Settings.Config.BoundsMeta.y);
+							particle->position.z += glm::linearRand(-Settings.Config.BoundsMeta.z, Settings.Config.BoundsMeta.z);
+							break;
+						case EmitterType::Circle:
+							{
+								particle->position = Settings.Config.Position + origin;
+								glm::vec3 norm = glm::normalize(glm::vec3(RAND_RNG, RAND_RNG, RAND_RNG));
+								particle->position += norm * Settings.Config.BoundsMeta;
+							}
+							break;
+						case EmitterType::Line:
+							particle->position = Settings.Config.Position + origin;
+							particle->position += RAND_RNG * Settings.Config.BoundsMeta;
 							break;
 					}
 
+					particle->angularVelocity = Math::lerpRange(Settings.Config.AngularSpeedRange, RAND_T);
+					
+					glm::vec3 vPos = glm::normalize(glm::vec3(RAND_RNG, RAND_RNG, RAND_RNG));
+					vPos *= Settings.Config.VelocityRadius;
+					vPos += Settings.Config.VelocityOffset;
+					vPos = glm::normalize(vPos);
+					particle->velocity = vPos * Math::lerpRange(Settings.Config.VelocityRange, RAND_T);
+					
 					emitted++;
 				}
 			}
 			// TODO: apply behaviours
+			glm::vec3 desiredVelocity;
+			float totalWeight = 0;
+			for (int ix = 0; ix < Settings.Behaviours.size(); ix++) {
+				desiredVelocity += Settings.Behaviours[ix].Apply(particle, totalWeight);
+			}
+			desiredVelocity += m_pEffect->ApplyBehaviours(particle, totalWeight);
+			
+			if (totalWeight > 0 && (desiredVelocity.x * desiredVelocity.x + desiredVelocity.y * desiredVelocity.y + desiredVelocity.z * desiredVelocity.z) > 0.0f) {
+				desiredVelocity /= totalWeight;
+				//desiredVelocity = glm::normalize(desiredVelocity);
+			}
+
+			particle->force = desiredVelocity * particle->mass;
 			
 			// Update physics
 			particle->force += Settings.Config.Gravity;
-			particle->texture = Settings.Config.TextureID;
 
 			// Update acceleration (basic Newtonian physics)
 			particle->acceleration = particle->force / particle->mass;

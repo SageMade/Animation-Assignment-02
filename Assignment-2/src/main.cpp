@@ -293,7 +293,7 @@ void InitializeScene()
 	SaveFileDlg.Filter = ".dat";
 	SaveFileDlg.Mode = SaveFileMode;
 
-	TexManager.IsVisible = true;
+	TexManager.IsVisible = false;
 
 	// Dont't forget the null terminator!
 	memcpy(inFileName, "test.dat", 9);
@@ -356,7 +356,7 @@ void LoadEffect(const char* fileName) {
 		stream.open(fileName, std::ios::in | std::ios::binary);
 		if (stream.good()) {
 			TextureCollection::ReadFromFile(stream);
-			particleEffect = ParticleEffect::ReadFromFile(stream);
+			particleEffect = *ParticleEffect::ReadFromFile(stream);
 			particleEffect.Init();
 
 			Settings.EffectSettings = ParticleEffectSettings();
@@ -430,49 +430,45 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 	switch (behaviour.Method) {
 		case Seek: {
 			if (behaviour.MetaData == nullptr) {
-				behaviour.MetaData = new SeekFleeData();
+				behaviour.SetData(new SeekFleeData());
 			}
 			SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
-			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+			ImGui::DragFloat(" Radius", &data.Radius);
 		}
 		break;
 		case Flee: {
 			if (behaviour.MetaData == nullptr) {
-				behaviour.MetaData = new SeekFleeData();
+				behaviour.SetData(new SeekFleeData());
 			}
 			SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
-			ImGui::Checkbox(" Local Space", &data.LocalSpace);
-
+			ImGui::DragFloat(" Radius", &data.Radius);
 		}
 		break;
 		case Repel: {
 			if (behaviour.MetaData == nullptr) {
-				behaviour.MetaData = new MagnetData();
+				behaviour.SetData(new MagnetData());
 			}
 			MagnetData& data = *reinterpret_cast<MagnetData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
 			ImGui::DragFloat(" Point", &data.Force);
-			ImGui::Checkbox(" Local Space", &data.LocalSpace);
 		}
 		break;
 		case Attract: {
 			if (behaviour.MetaData == nullptr) {
-				behaviour.MetaData = new MagnetData();
+				behaviour.SetData(new MagnetData());
 			}
 			MagnetData& data = *reinterpret_cast<MagnetData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
 			ImGui::DragFloat(" Point", &data.Force);
-			ImGui::Checkbox(" Local Space", &data.LocalSpace);
 		}
 		break;
 		case Path: {
 			if (behaviour.MetaData == nullptr) {
-				behaviour.MetaData = new PathData();
+				behaviour.SetData(new PathData());
 			}
-			PathData& data = *reinterpret_cast<PathData*>(behaviour.MetaData);			
-			ImGui::Checkbox(" Local Space", &data.LocalSpace);
+			PathData& data = *reinterpret_cast<PathData*>(behaviour.MetaData);		
 			ImGui::Combo(" Mode", (int*)&data.LoopMode, "Loop\0Reverse\0Stop\0\0");
 			DisplayEditablePointList(data.Points);
 		}
@@ -489,7 +485,10 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 	if (show) {
 		ParticleLayerSettings &settings = *settingsPtr;
 
-		if (ImGui::Begin(settings.Config.Name, &show, ImGuiWindowFlags_::ImGuiWindowFlags_AlwaysAutoResize)) {
+		static char* buffer = new char[EFFECT_NAME_MAX_LENGTH + 6];
+		sprintf(buffer, "%s###lr", settings.Config.Name);
+
+		if (ImGui::Begin(buffer, &show, ImGuiWindowFlags_::ImGuiWindowFlags_AlwaysAutoResize)) {
 
 			ImGui::BeginChild((ImGuiID)0, ImVec2(280, 1));
 			ImGui::EndChild();
@@ -497,9 +496,8 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 			if (ImGui::CollapsingHeader("Physics:")) {
 				ImGui::DragFloat3(" Position", &settings.Config.Position[0]);
 				ImGui::DragFloat3(" Gravity", &settings.Config.Gravity[0]);
-				ImGui::Combo(" Velocity Type", (int*)&settings.Config.VelocityType, "Cone/Line\0Box\0\0");
-				ImGui::DragFloat3(" Velocity 0", &settings.Config.Velocity0[0]);
-				ImGui::DragFloat3(" Velocity 1", &settings.Config.Velocity1[0]);
+				ImGui::DragFloat3(" Velocity Radius", &settings.Config.VelocityRadius[0]);
+				ImGui::DragFloat3(" Velocity Offset", &settings.Config.VelocityOffset[0]);
 				ImGui::DragFloat2(" Angular Range", &settings.Config.AngularSpeedRange[0]);
 				ImGui::DragFloat2(" Velocity Range", &settings.Config.VelocityRange[0]);
 				ImGui::DragFloat2(" Mass Range", &settings.Config.MassRange[0], 0.1f, 0.01f, 1000.0f);
@@ -606,7 +604,7 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 
 void DisplayEffectConfig(ParticleEffectSettings& settings) {
 	ImGui::Text("Effect Config");
-	ImGui::InputText(" Name", settings.Name, 32);
+	ImGui::InputText(" Name", particleEffect.Name, 32);
 	ImGui::Separator();
 	ImGui::Text("Layers: ");
 	ImGui::SameLine();
@@ -714,21 +712,6 @@ glm::vec3 clearColor = glm::vec3(0.5f);
 // This is where we draw stuff
 void DisplayCallbackFunction(void)
 {
-	ImGuiIO& io = ImGui::GetIO();
-
-	if (io.KeysDown['w'])
-		camera.moveForward();
-	if (io.KeysDown['s'])
-		camera.moveBackward();
-	if (io.KeysDown['a'])
-		camera.moveRight();
-	if (io.KeysDown['d'])
-		camera.moveLeft();
-	if (io.KeysDown[128 + 114])
-		camera.moveDown();
-	if (io.KeysDown[' '])
-		camera.moveUp();
-	
 	// Set up scene
 	TTK::Graphics::SetBackgroundColour(clearColor.x, clearColor.y, clearColor.z);
 	TTK::Graphics::ClearScreen();
@@ -739,11 +722,7 @@ void DisplayCallbackFunction(void)
 	Renderer::ProjectionMatrix = glm::perspectiveFov(70.0f, (float)TTK::Graphics::ScreenWidth, (float)TTK::Graphics::ScreenHeight, 0.01f, 1000.0f);
 	Renderer::WorldTransform = glm::mat4(1.0f);
 
-	// Apply forces on the particle system
-    //if (applySeekingForce)
-	//	applyForcesToParticleSystem(&emitter, glm::vec3(windowHeight*0.5f, windowWidth*0.5, 0.0f));
-	
-	TTK::Graphics::DrawGrid();
+	TTK::Graphics::DrawGrid(); 
 
 	// perform physics calculations for each particle
 	if (Settings.IsPlaying)
@@ -763,6 +742,31 @@ void DisplayCallbackFunction(void)
 
 	// You must call this prior to using any imgui functions
 	TTK::Graphics::StartUI(windowWidth, windowHeight);
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	if (io.KeysDown['w'])
+		camera.moveForward();
+	if (io.KeysDown['s'])
+		camera.moveBackward();
+	if (io.KeysDown['a'])
+		camera.moveRight();
+	if (io.KeysDown['d'])
+		camera.moveLeft();
+	if (io.KeysDown[128 + 114])
+		camera.moveDown();
+	if (io.KeysDown[' '])
+		camera.moveUp();
+	if (io.KeysDown[128 + GLUT_KEY_LEFT])
+		camera.applyYaw(800.0f / TTK::Graphics::ScreenWidth);
+	if (io.KeysDown[128 + GLUT_KEY_RIGHT])
+		camera.applyYaw(-800.0f / TTK::Graphics::ScreenWidth);
+	if (io.KeysDown[128 + GLUT_KEY_UP])
+		camera.applyPitch(600.0f / TTK::Graphics::ScreenHeight);
+	if (io.KeysDown[128 + GLUT_KEY_DOWN])
+		camera.applyPitch(-600.0f / TTK::Graphics::ScreenHeight);
+
+	camera.recalculateVectors();
 
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
@@ -984,7 +988,7 @@ void SpecialInputUpCallbackFunction(int key, int x, int y)
 void MouseMotionCallbackFunction(int x, int y)
 {
 	ImGui::GetIO().MousePos = ImVec2((float)x, (float)y);
-
+	
 	mousePosition.x = x;
 	mousePosition.y = y;
 

@@ -94,7 +94,7 @@ void ParticleEffect::Init() {
 }
 
 void ParticleEffect::AddLayer(ParticleLayerSettings settings) {
-	ParticleLayer *emitter = new ParticleLayer(settings);
+	ParticleLayer *emitter = new ParticleLayer(this, settings);
 	emitter->initialize();
 	emitter->Settings.Config.Index = (uint8_t)Layers.size();
 	Layers.push_back(emitter);
@@ -139,9 +139,16 @@ void ParticleEffect::Draw() {
 #endif
 }
 
+glm::vec3 ParticleEffect::ApplyBehaviours(Particle * particle, float & totalWeight) {
+	glm::vec3 result = glm::vec3(0.0f);
+	for (int ix = 0; ix < Behaviours.size(); ix++)
+		result += Behaviours[ix].Apply(particle, totalWeight);
+	return result;
+}
+
 void ParticleEffect::WriteToFile(std::fstream & stream) {
 	Write(stream, Name, EFFECT_NAME_MAX_LENGTH);
-	size_t   loc = stream.tellg();
+	uint64_t loc = stream.tellg();
 	uint32_t size = Layers.size();
 	Write(stream, size);
 
@@ -158,23 +165,23 @@ void ParticleEffect::WriteToFile(std::fstream & stream) {
 	}
 } 
 
-ParticleEffect ParticleEffect::ReadFromFile(std::fstream & stream) {
-	ParticleEffect result = ParticleEffect();
-	Read(stream, result.Name, EFFECT_NAME_MAX_LENGTH);
-	size_t loc = stream.tellg();
+ParticleEffect* ParticleEffect::ReadFromFile(std::fstream & stream) {
+	ParticleEffect *result = new ParticleEffect();
+	Read(stream, result->Name, EFFECT_NAME_MAX_LENGTH);
+	uint64_t loc = stream.tellg();
 	uint32_t count = 0;
 	Read(stream, &count);
 
 	loc = stream.tellg();
 
 	for (int ix = 0; ix < count; ix++) {
-		result.Layers.push_back(new ParticleLayer(ParticleLayerSettings::ReadFromFile(stream)));
+		result->Layers.push_back(new ParticleLayer(result, ParticleLayerSettings::ReadFromFile(stream)));
 	}
 
 	Read(stream, count);
 
 	for (int ix = 0; ix < count; ix++) {
-		result.Behaviours.push_back(SteeringBehaviour::ReadFromFile(stream));
+		result->Behaviours.push_back(SteeringBehaviour::ReadFromFile(stream));
 	}
 
 	return result;
@@ -188,7 +195,7 @@ void ParticleEffect::ReplaceSettings(const ParticleEffectSettings& settings) {
 	}
 
 	for (int ix = 0; ix < settings.Layers.size(); ix++) {
-		ParticleLayer *layer = new ParticleLayer(settings.Layers[ix]);
+		ParticleLayer *layer = new ParticleLayer(this, settings.Layers[ix]);
 		layer->initialize();
 		Layers.push_back(layer);
 	}
