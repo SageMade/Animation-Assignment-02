@@ -78,9 +78,11 @@ glm::vec3 SteeringBehaviour::Apply(Particle * particle, float& totalWeight) {
 			{
 				const MagnetData& data = *reinterpret_cast<MagnetData*>(MetaData);
 				glm::vec3 displacement = particle->position - data.Point;
-				float dist = displacement.length();
+				float dist = glm::length(displacement);
 				displacement = glm::normalize(displacement);
-				if (dist < data.Radius)
+				if (dist < data.Radius / 2.0f)
+					result = -particle->force;
+				else if (dist < data.Radius)
 					result =  displacement * glm::clamp(dist / data.Radius, 0.0f, data.Force) * (Method == SteeringMethod::Attract ? -1.0f : 1.0f);
 				else
 					result = glm::normalize(displacement) * glm::clamp(dist, 0.0f, data.Force) *(Method == SteeringMethod::Attract ? -1.0f : 1.0f);
@@ -91,7 +93,7 @@ glm::vec3 SteeringBehaviour::Apply(Particle * particle, float& totalWeight) {
 			{
 				const SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(MetaData);
 				glm::vec3 displacement = particle->position - data.Point;
-				float dist = displacement.length();
+				float dist = glm::length(displacement);
 				result = displacement * data.Force * (Method == SteeringMethod::Seek ? -1.0f : 1.0f);
 			}
 			break;
@@ -126,13 +128,13 @@ glm::vec3 SteeringBehaviour::Apply(Particle * particle, float& totalWeight) {
 					}
 					else {
 						glm::vec3 pDisp = p1 - p0;
-						float segLen = pDisp.length();
+						float segLen = glm::length(pDisp);
 						pDisp = glm::normalize(pDisp);
 						glm::vec3 vRel  = particle->position - p0;
-						float dot = glm::clamp(glm::dot(vRel, pDisp), 0.0f, 2 * segLen) + 0.2f;
+						float dot = glm::clamp(glm::dot(vRel, pDisp) + 0.1f, 0.0f, segLen);
 						glm::vec3 pTarg = pDisp * dot;
-						result = (pTarg - vRel);
-						result *= (segLen - dot) / segLen;
+						result = pTarg - vRel;
+						//result *= (segLen - dot) / segLen;
 						if (EditorSettings::DebugPaths) {
  							TTK::Graphics::DrawLine(p0, p0 + pTarg, 1.0f, RED);
 							TTK::Graphics::DrawLine(p0, p1, 1.0f, GREEN);

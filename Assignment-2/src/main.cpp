@@ -620,6 +620,7 @@ void DisplayCallbackFunction(void)
 
 		// Editor controls
 		if (ImGui::CollapsingHeader("Editor Controls")) {
+			ImGui::Checkbox("Debug Paths", &EditorSettings::DebugPaths);
 			ImGui::Checkbox("Playback Enabled", &EditorSettings::IsPlaying);
 			ImGui::SameLine();
 			if (ImGui::Button("Restart")) {
