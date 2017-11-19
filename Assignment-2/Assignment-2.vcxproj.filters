@@ -92,6 +92,9 @@
     <ClCompile Include="src\SteeringBehaviour.cpp">
       <Filter>Assignment\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\EditorSettings.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AnimationMath.h">
@@ -194,6 +197,9 @@
       <Filter>Assignment\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AdaptiveCurve.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorSettings.h">
       <Filter>Assignment\Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -26,6 +26,14 @@ void TTK::internal::imguiInit()
 	io.DisplaySize.x = 1280;
 	io.DisplaySize.y = 720;
 	io.RenderDrawListsFn = TTK::internal::imguiDraw;
+	ImFontConfig fntConfig = ImFontConfig();
+	fntConfig.GlyphRanges = new ImWchar[8]{
+		0x0020, 0x00FF,
+		0x00A9, 0x00A9,
+		0x00AE, 0x00AE,
+		0x00B2, 0x00B2
+	};
+	io.Fonts->AddFontDefault(&fntConfig);
 
 	g_imguiFontTex = std::make_shared<Texture2D>();
 	unsigned char* imguiFontTexData;

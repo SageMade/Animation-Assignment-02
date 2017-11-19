@@ -41,6 +41,7 @@ struct MagnetData {
 struct PathData {
 	std::vector<glm::vec3> Points;
 	LoopType               LoopMode;
+	float                  NodeRadius;
 };
 
 struct SteeringBehaviour {

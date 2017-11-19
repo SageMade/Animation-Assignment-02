@@ -29,6 +29,7 @@
     <ClCompile Include="dependencies\TTK\QuadMesh.cpp" />
     <ClCompile Include="dependencies\TTK\Texture2D.cpp" />
     <ClCompile Include="src\AnimationMath.cpp" />
+    <ClCompile Include="src\EditorSettings.cpp" />
     <ClCompile Include="src\FileHelpers.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -60,6 +61,7 @@
     <ClInclude Include="dependencies\TTK\Texture2D.h" />
     <ClInclude Include="src\AdaptiveCurve.h" />
     <ClInclude Include="src\AnimationMath.h" />
+    <ClInclude Include="src\EditorSettings.h" />
     <ClInclude Include="src\FileDialog.h" />
     <ClInclude Include="src\FileHelpers.h" />
     <ClInclude Include="src\GameObject.h" />

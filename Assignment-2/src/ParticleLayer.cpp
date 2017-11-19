@@ -106,6 +106,7 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 					// Note: we are not freeing memory, we are "Recycling" the particles
 					particle->acceleration = glm::vec3(0.0f);
 					particle->texture = Settings.Config.TextureID;
+					particle->pathData = 0;
 
 					float randomTval = glm::linearRand(0.0f, 1.0f);
 					particle->colour = Math::lerp(Settings.Config.InitColor, Settings.Config.FinalColor, randomTval);

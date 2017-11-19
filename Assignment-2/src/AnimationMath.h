@@ -7,6 +7,10 @@
 
 namespace Math
 {
+	float distSquared(glm::vec2 a, glm::vec2 b);
+	float distSquared(glm::vec3 a, glm::vec3 b);
+	float distSquared(glm::vec4 a, glm::vec4 b);
+
 	template <typename T>
 	T SolveBezier(T p0, T t1, T t2, T p2, float t) {
 		float invT = 1.0f - t;

@@ -92,12 +92,12 @@ void TTK::Graphics::EndPointSprites() {
 	glDisable(GL_POINT_SPRITE);
 }
 
- void TTK::Graphics::DrawLine(glm::vec3 p0, glm::vec3 p1, float lineWidth, glm::vec4 colour)
+ void TTK::Graphics::DrawLine(glm::vec3 p0, glm::vec3 p1, float lineWidth, const glm::vec4 colour)
  {
  	DrawLine(&p0[0], &p1[0], lineWidth, &colour[0]);
  }
 
-void TTK::Graphics::DrawLine(float* p0, float* p1, float lineWidth, float *colour)
+void TTK::Graphics::DrawLine(float* p0, float* p1, float lineWidth, const float *colour)
 {
 	GLboolean lightingEnabled;
 	glGetBooleanv(GL_LIGHTING, &lightingEnabled);

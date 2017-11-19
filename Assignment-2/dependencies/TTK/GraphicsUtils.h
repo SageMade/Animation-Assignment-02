@@ -17,6 +17,10 @@
 
 #include "Texture2D.h"
 
+const glm::vec4 RED = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+const glm::vec4 GREEN = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
+const glm::vec4 BLUE = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
 namespace TTK
 {
 	class Graphics
@@ -49,8 +53,8 @@ namespace TTK
 		// p0 and p1 are arrays of 3 floats representing position
 		// lineWidth is the width of the line in pixels
 		// colour is the colour of the line (r,g,b)
-		static void DrawLine(glm::vec3 p0, glm::vec3 p1, float lineWidth = 1.0f, glm::vec4 colour = glm::vec4());
-		static void DrawLine(float* p0, float* p1, float lineWidth = 1.0f, float *colour = nullptr);
+		static void DrawLine(glm::vec3 p0, glm::vec3 p1, float lineWidth = 1.0f, const glm::vec4 colour = glm::vec4());
+		static void DrawLine(float* p0, float* p1, float lineWidth = 1.0f, const float *colour = nullptr);
 
 		static void DrawVector(float* origin, float* vectorToDraw, float lineWidth = 1.0f, float *colour = nullptr);
 		static void DrawVector(glm::vec3 origin, glm::vec3 vectorToDraw, float lineWidth = 1.0f, glm::vec3 colour = glm::vec4());

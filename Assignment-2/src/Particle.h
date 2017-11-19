@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <glm\glm.hpp>
 
+#define MASK_PATH_REVERSE 0x8000
+#define MASK_PATH_NODEID  0x7FFF
+
 // Params for each particle
 // Note: this is a bare minimum particle structure
 // Add any properties you want to control here
@@ -30,4 +33,5 @@ struct Particle
 	float angle;
 	float life;
 	uint8_t texture;
+	uint16_t pathData;
 };

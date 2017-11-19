@@ -1,5 +1,11 @@
 #include "SteeringBehaviour.h"
 #include "FileHelpers.h"
+#include "AnimationMath.h"
+#include "EditorSettings.h"
+
+#include <TTK\GraphicsUtils.h>
+
+#include <iostream>
 
 void SteeringBehaviour::WriteToFile(std::fstream & stream) {
 	Write(stream, Method);
@@ -90,7 +96,51 @@ glm::vec3 SteeringBehaviour::Apply(Particle * particle, float& totalWeight) {
 			}
 			break;
 		case SteeringMethod::Path:
-			// Ugh...
+			{
+				const PathData& path = *GetData<PathData>();
+				if (path.Points.size() >= 2) {
+					uint16_t currentNode = particle->pathData & MASK_PATH_NODEID;
+					uint16_t nextNode = currentNode + (particle->pathData & MASK_PATH_REVERSE ? -1 : 1);
+
+					if (currentNode >= path.Points.size())
+						currentNode = path.Points.size() - 1;
+
+					if (nextNode >= path.Points.size()) {
+						switch (path.LoopMode) {
+						case LoopType::LoopTypeLoop:
+							nextNode = 0;
+							break;
+						case LoopType::LoopTypeStop:
+							nextNode = currentNode;
+							break;
+						case LoopType::LoopTypeReverse:
+							nextNode = currentNode - 1;
+							particle->pathData |= MASK_PATH_REVERSE;
+							break;
+						}
+					}
+					glm::vec3 p0 = path.Points[currentNode];
+					glm::vec3 p1 = path.Points[nextNode];
+					if (Math::distSquared(p1, particle->position) < path.NodeRadius) {
+						particle->pathData = nextNode | (particle->pathData & MASK_PATH_REVERSE);
+					}
+					else {
+						glm::vec3 pDisp = p1 - p0;
+						float segLen = pDisp.length();
+						pDisp = glm::normalize(pDisp);
+						glm::vec3 vRel  = particle->position - p0;
+						float dot = glm::clamp(glm::dot(vRel, pDisp), 0.0f, 2 * segLen) + 0.2f;
+						glm::vec3 pTarg = pDisp * dot;
+						result = (pTarg - vRel);
+						result *= (segLen - dot) / segLen;
+						if (EditorSettings::DebugPaths) {
+ 							TTK::Graphics::DrawLine(p0, p0 + pTarg, 1.0f, RED);
+							TTK::Graphics::DrawLine(p0, p1, 1.0f, GREEN);
+							TTK::Graphics::DrawLine(particle->position, particle->position + result, 1.0f, BLUE);
+						}
+					}
+				}
+			}
 			break;
 	}
 	return result;

@@ -38,6 +38,8 @@
 #include "FileDialog.h"
 #include "TextureCollectionEditor.h"
 
+#include "EditorSettings.h"
+
 #include <sstream>
 
 // Defines and Core variables
@@ -67,17 +69,6 @@ ParticleEffect particleEffect;
 char inFileName[256];
 char outFileName[256];
 
-
-struct EditorSettings {
-	ParticleLayerSettings  *ActiveEditLayer = nullptr;
-	ParticleEffectSettings  EffectSettings;
-
-	bool                    IsPlaying = true;
-	float                   PlaybackSpeed = 100.0f;
-} Settings;
-
-
-
 FileDialog OpenFileDlg;
 FileDialog SaveFileDlg;
 
@@ -102,7 +93,7 @@ void InitializeScene()
 	memcpy(inFileName, "test.dat", 9);
 	memcpy(outFileName, "test.dat", 9);
 	
-	Settings.EffectSettings = ParticleEffectSettings();
+	EditorSettings::EffectSettings = ParticleEffectSettings();
 
 	LayerConfig config;
 	memcpy(config.Name, "Default", 8);
@@ -112,7 +103,7 @@ void InitializeScene()
 
 	particleEffect.AddLayer(settings);
 
-	Settings.EffectSettings.Layers.push_back(particleEffect.Layers.back()->Settings);
+	EditorSettings::EffectSettings.Layers.push_back(particleEffect.Layers.back()->Settings);
 			
 	//std::fstream stream;
 	//stream.open("test.dat");
@@ -162,11 +153,11 @@ void LoadEffect(const char* fileName) {
 			particleEffect = *ParticleEffect::ReadFromFile(stream);
 			particleEffect.Init();
 
-			Settings.EffectSettings = ParticleEffectSettings();
-			Settings.EffectSettings.Layers.reserve(particleEffect.Layers.size());
-			memcpy(Settings.EffectSettings.Name, particleEffect.Name, EFFECT_NAME_MAX_LENGTH);
+			EditorSettings::EffectSettings = ParticleEffectSettings();
+			EditorSettings::EffectSettings.Layers.reserve(particleEffect.Layers.size());
+			memcpy(EditorSettings::EffectSettings.Name, particleEffect.Name, EFFECT_NAME_MAX_LENGTH);
 			for (int ix = 0; ix < particleEffect.Layers.size(); ix++) {
-				Settings.EffectSettings.Layers.push_back(particleEffect.Layers[ix]->Settings);
+				EditorSettings::EffectSettings.Layers.push_back(particleEffect.Layers[ix]->Settings);
 			}
 		}
 		else {
@@ -227,7 +218,10 @@ void DisplayEditablePointList(std::vector<glm::vec3> &list) {
 void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 	ImGui::InputText(" Name", behaviour.Name, BEHAVIOUR_NAME_SIZE);
 	ImGui::DragFloat(" Weight", &behaviour.Weight, 0.1f, 0.0f, 1.0f);
-	ImGui::Combo(" Method", (int*)&behaviour.Method, "None\0Seek\0Flee\0Repel\0Attract\0Path\0\0");
+	if (ImGui::Combo(" Method", (int*)&behaviour.Method, "None\0Seek\0Flee\0Repel\0Attract\0Path\0\0")) {
+		free(behaviour.MetaData);
+		behaviour.MetaData = nullptr;
+	}
 	
 	switch (behaviour.Method) {
 		case Seek: {
@@ -274,6 +268,7 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 			}
 			PathData& data = *reinterpret_cast<PathData*>(behaviour.MetaData);		
 			ImGui::Combo(" Mode", (int*)&data.LoopMode, "Loop\0Reverse\0Stop\0\0");
+			ImGui::DragFloat(u8" Node Radius²", &data.NodeRadius, 0.1f, 0.0f, 5.0f, "%.3f", 0.5f);
 			DisplayEditablePointList(data.Points);
 		}
 		break;
@@ -284,7 +279,7 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 
 void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 
-	bool show = Settings.ActiveEditLayer != nullptr;
+	bool show = EditorSettings::ActiveEditLayer != nullptr;
 
 	if (show) {
 		ParticleLayerSettings &settings = *settingsPtr;
@@ -399,7 +394,7 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 	}
 
 	if (!show)
-		Settings.ActiveEditLayer = nullptr;
+		EditorSettings::ActiveEditLayer = nullptr;
 }
 
 void DisplayEffectConfig(ParticleEffectSettings& settings) {
@@ -432,12 +427,12 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 		ImGui::InputText("Name", particleEffect.Layers[ix]->Settings.Config.Name, MAX_LAYER_NAME_SIZE);
 		memcpy(settings.Layers[ix].Config.Name, particleEffect.Layers[ix]->Settings.Config.Name, MAX_LAYER_NAME_SIZE);
 		if (ImGui::Button("Edit")) {
-			Settings.ActiveEditLayer = &particleEffect.Layers[ix]->Settings;
+			EditorSettings::ActiveEditLayer = &particleEffect.Layers[ix]->Settings;
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Remove")) {
 			settings.Layers.erase(settings.Layers.begin() + ix);
-			particleEffect.ReplaceSettings(Settings.EffectSettings);
+			particleEffect.ReplaceSettings(EditorSettings::EffectSettings);
 			ix--;
 		}
 		if (ix > 0) {
@@ -525,8 +520,8 @@ void DisplayCallbackFunction(void)
 	TTK::Graphics::DrawGrid();
 
 	// perform physics calculations for each particle
-	if (Settings.IsPlaying)
-		particleEffect.Update(deltaTime * Settings.PlaybackSpeed * 0.01);
+	if (EditorSettings::IsPlaying)
+		particleEffect.Update(deltaTime * EditorSettings::PlaybackSpeed * 0.01);
 
 	// draw the particles
 	particleEffect.Draw();
@@ -574,9 +569,9 @@ void DisplayCallbackFunction(void)
 					OpenFileDlg.Show = false;
 			}
 			if (ImGui::MenuItem("Create new effect")) {
-				Settings.EffectSettings = ParticleEffectSettings();
-				particleEffect.ReplaceSettings(Settings.EffectSettings);
-				Settings.ActiveEditLayer = nullptr;
+				EditorSettings::EffectSettings = ParticleEffectSettings();
+				particleEffect.ReplaceSettings(EditorSettings::EffectSettings);
+				EditorSettings::ActiveEditLayer = nullptr;
 			}
 			ImGui::EndMenu();
 		}
@@ -625,12 +620,12 @@ void DisplayCallbackFunction(void)
 
 		// Editor controls
 		if (ImGui::CollapsingHeader("Editor Controls")) {
-			ImGui::Checkbox("Playback Enabled", &Settings.IsPlaying);
+			ImGui::Checkbox("Playback Enabled", &EditorSettings::IsPlaying);
 			ImGui::SameLine();
 			if (ImGui::Button("Restart")) {
 				particleEffect.Restart();
 			}
-			ImGui::SliderFloat("Playback Speed", &Settings.PlaybackSpeed, 0.0f, 200.0f, "%.2f%%", 1.0f, 100.0f);			
+			ImGui::SliderFloat("Playback Speed", &EditorSettings::PlaybackSpeed, 0.0f, 200.0f, "%.2f%%", 1.0f, 100.0f);
 		}
 
 		/*
@@ -643,14 +638,14 @@ void DisplayCallbackFunction(void)
 
 		ImGui::Separator();
 
-		DisplayEffectConfig(Settings.EffectSettings);
+		DisplayEffectConfig(EditorSettings::EffectSettings);
 
 		ImGui::End();
 	}
 
 	TexManager.Display();
 	
-	DisplayLayerConfig(Settings.ActiveEditLayer);
+	DisplayLayerConfig(EditorSettings::ActiveEditLayer);
 
 	if (OpenFileDlg.DrawDialog() == 1) {
 		LoadEffect(OpenFileDlg.GetFile().c_str());
