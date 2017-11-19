@@ -181,13 +181,19 @@
     <ClInclude Include="dependencies\imgui\curve.hpp">
       <Filter>ImGui\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="src\AdaptiveCurve.h">
-      <Filter>Assignment\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\SteeringBehaviour.h">
       <Filter>Assignment\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Particle.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TextureCollectionEditor.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FileDialog.h">
+      <Filter>Assignment\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AdaptiveCurve.h">
       <Filter>Assignment\Header Files</Filter>
     </ClInclude>
   </ItemGroup>

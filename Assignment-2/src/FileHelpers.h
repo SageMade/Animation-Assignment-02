@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+void relativitify(std::string& path);
+
 template <typename T>
 void Write(std::fstream& stream, const T& data) {
 	stream.write(reinterpret_cast<const char*>(&data), sizeof(T));

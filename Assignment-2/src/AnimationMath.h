@@ -7,6 +7,13 @@
 
 namespace Math
 {
+	template <typename T>
+	T SolveBezier(T p0, T t1, T t2, T p2, float t) {
+		float invT = 1.0f - t;
+
+		return invT * invT * invT * p0 + 3.0f * invT * invT  * t* t1 * 3.0f * invT * t * t * t2 + t * t * t * p2;
+	}
+
 	// Linear interpolation
 	template <typename T>
 	T lerp(T d0, T d1, float t)

@@ -27,12 +27,15 @@ enum LoopType : uint32_t {
 
 struct SeekFleeData {
 	glm::vec3 Point;
-	float     Radius;
+	float     Force;
 };
 
 struct MagnetData {
 	glm::vec3 Point;
 	float     Force;
+	float     Radius;
+
+	MagnetData() : Point(glm::vec3(0.0f)), Force(1.0f), Radius(1.0f) {}
 };
 
 struct PathData {

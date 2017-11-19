@@ -60,6 +60,7 @@
     <ClInclude Include="dependencies\TTK\Texture2D.h" />
     <ClInclude Include="src\AdaptiveCurve.h" />
     <ClInclude Include="src\AnimationMath.h" />
+    <ClInclude Include="src\FileDialog.h" />
     <ClInclude Include="src\FileHelpers.h" />
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\GLM.h" />
@@ -74,6 +75,7 @@
     <ClInclude Include="src\stb_proxy.h" />
     <ClInclude Include="src\SteeringBehaviour.h" />
     <ClInclude Include="src\TextureCollection.h" />
+    <ClInclude Include="src\TextureCollectionEditor.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F213F0BC-6758-4A54-8B03-00E4FB70B242}</ProjectGuid>

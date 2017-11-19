@@ -67,24 +67,31 @@ glm::vec3 SteeringBehaviour::Apply(Particle * particle, float& totalWeight) {
 	totalWeight += Weight;
 	glm::vec3 result = glm::vec3(0.0f);
 	switch (Method) {
-	case SteeringMethod::Attract:
-	case SteeringMethod::Repel:
-	{
-		const MagnetData& data = *reinterpret_cast<MagnetData*>(MetaData);
-		glm::vec3 displacement = particle->position - data.Point;
-		float dist = displacement.length();
-		result = ((displacement * data.Force) / (dist * dist)) * (Method == SteeringMethod::Attract ? -1.0f : 1.0f);
-	}
-	break;
-	case SteeringMethod::Seek:
-	case SteeringMethod::Flee:
-	{
-		const SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(MetaData);
-		glm::vec3 displacement = particle->position - data.Point;
-		float dist = displacement.length();
-		result = ((displacement) / dist) * (Method == SteeringMethod::Seek ? -1.0f : 1.0f);
-	}
-	break;
+		case SteeringMethod::Attract:
+		case SteeringMethod::Repel:
+			{
+				const MagnetData& data = *reinterpret_cast<MagnetData*>(MetaData);
+				glm::vec3 displacement = particle->position - data.Point;
+				float dist = displacement.length();
+				displacement = glm::normalize(displacement);
+				if (dist < data.Radius)
+					result =  displacement * glm::clamp(dist / data.Radius, 0.0f, data.Force) * (Method == SteeringMethod::Attract ? -1.0f : 1.0f);
+				else
+					result = glm::normalize(displacement) * glm::clamp(dist, 0.0f, data.Force) *(Method == SteeringMethod::Attract ? -1.0f : 1.0f);
+			}
+			break;
+		case SteeringMethod::Seek:
+		case SteeringMethod::Flee:
+			{
+				const SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(MetaData);
+				glm::vec3 displacement = particle->position - data.Point;
+				float dist = displacement.length();
+				result = displacement * data.Force * (Method == SteeringMethod::Seek ? -1.0f : 1.0f);
+			}
+			break;
+		case SteeringMethod::Path:
+			// Ugh...
+			break;
 	}
 	return result;
 }

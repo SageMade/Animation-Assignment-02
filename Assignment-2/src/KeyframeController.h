@@ -10,6 +10,7 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 template <typename T>
 struct SpeedControlTableRow
@@ -19,6 +20,20 @@ struct SpeedControlTableRow
 	float arcLength;
 	float arcLengthNormalized;
 	T sampleValue;
+};
+
+template <typename T>
+struct SpeedControlTableRowAdaptive
+{
+	float u0;
+	float u1;
+	float uMid;
+	T P0;
+	T Pmid;
+	T P1;
+	float dist1;
+	float dist2;
+	float dist3;
 };
 
 template <typename T>
@@ -45,7 +60,72 @@ public:
 
 	}
 
-	void calculateLookupTable(int numSamples)
+	void CalculateLookupTableAdaptiveSampling(float tolerance)
+	{
+		if (myKeyFrames.size()>3)
+		{
+			float uStart = 0.0f;
+			float uEnd = 1.0f;
+			float uMid = (uStart + uEnd) * 0.5;
+			float sample;
+			lookupTable.clear();
+
+			for (int i = 0; i < myKeyFrames.size() - 3; i++)
+			{
+				while (uStart != 0.750f)
+				{
+					SpeedControlTableRowAdaptive<T> row;
+
+					T P0 = AnimationMath::bezier(myKeyFrames[i], myKeyFrames[i + 1],
+						myKeyFrames[i + 2], myKeyFrames[i + 3], uStart);
+					T P1 = AnimationMath::bezier(myKeyFrames[i], myKeyFrames[i + 1],
+						myKeyFrames[i + 2], myKeyFrames[i + 3], uMid);
+					T P2 = AnimationMath::bezier(myKeyFrames[i], myKeyFrames[i + 1],
+						myKeyFrames[i + 2], myKeyFrames[i + 3], uEnd);
+					float distance1 = glm::distance(P1, P0);
+					float distance2 = glm::distance(P1, P2);
+					float distance3 = glm::distance(P0, P2);
+
+					row.u0 = uStart;
+					row.u1 = uEnd;
+					row.uMid = uMid;
+					row.P0 = P0;
+					row.Pmid = P1;
+					row.P1 = P2;
+					row.dist1 = distance1;
+					row.dist2 = distance2;
+					row.dist3 = distance3;
+					sample = distance1 + distance2 - distance3;
+					if (sample >tolerance)
+					{
+						adaptiveLookupTable.push_back(row);
+						uEnd = uMid;
+						uMid = (uStart + uEnd) * 0.5;
+
+					}
+					else
+					{
+						uStart = uEnd;
+						if (uStart == 0.5f)
+						{
+							uEnd = 1.0f;
+						}
+						else
+						{
+							uEnd = 1.0f * 0.5;
+						}
+						uMid = (uStart + uEnd)*0.5;
+
+					}
+				}
+
+			}
+
+		}
+
+	}
+
+	void calculateLookupTable(int numSamples, std::function<const T(T, T, float)> curve)
 	{
 		if (m_pKeys.size() > 1) // Make sure we have enough points
 		{
@@ -65,7 +145,7 @@ public:
 					row.segment = i;
 					row.tValue  = j;
 
-					row.sampleValue = Math::lerp(m_pKeys[i], m_pKeys[i + 1], j); // For this lab, we'll use lerp. But this exact algorithm works for catmull or bezier too.
+					row.sampleValue = curve(m_pKeys[i], m_pKeys[i + 1], j); // For this lab, we'll use lerp. But this exact algorithm works for catmull or bezier too.
 
 					m_pSpeedControlLookUpTable.push_back(row);
 				}
@@ -148,10 +228,7 @@ public:
 		if (m_pKeys.size() < 2)
 			return T();	
 
-		if (doesSpeedControl)
-			return speedControlledUpdate(dt);
-		else
-			return noSpeedControlUpdate(dt);
+		return speedControlledUpdate(dt);
 	}
 
 	void updateSegmentIndices()
@@ -165,26 +242,19 @@ public:
 			// If we're at the end of the animation, jump back to beginning
 			// Note: you can add additional logic here to handle end of animation behaviour
 			// such as: ping-ponging (playing in reverse back to beginning), closed loop, etc.
-			if (m_pNextKeyframe >= m_pKeys.size())
+			if (loops)
+			{
+				m_pCurrentKeyframe %= m_pKeys.size();
+				m_pNextKeyframe    %= m_pKeys.size();
+			}
+			else if (m_pNextKeyframe >= m_pKeys.size())
 			{
 				m_pCurrentKeyframe = 0;
 				m_pNextKeyframe = 1;
 			}
 		}
 	}
-
-	T noSpeedControlUpdate(float dt)
-	{
-		m_pKeyLocalTime += dt;
-
-		updateSegmentIndices();
-
-		T p0 = m_pKeys[m_pCurrentKeyframe];
-		T p1 = m_pKeys[m_pNextKeyframe];
-
-		return Math::lerp<T>(p0, p1, m_pKeyLocalTime);
-	}
-
+	
 	void addKey(T key)
 	{
 		m_pKeys.push_back(key);
@@ -200,5 +270,4 @@ public:
 	float curvePlaySpeed;
 	bool paused;
 	bool loops;
-	bool doesSpeedControl;
 };

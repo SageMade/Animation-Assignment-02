@@ -14,13 +14,19 @@ class AdaptiveCurve {
 			__Generate(tolerance);
 		}
 		T Solve(float t) {
-			if (myEntries.size() == 0 || t < 0 || t > 1)
+			if (myEntries.size() == 0 )
 				return T();
+			if (t < 0)
+				return myEntries[0].Value;
 
 			CurveEntry* ptr = myEntries.data() + 1;
 			CurveEntry* last = ptr + myEntries.size();
+
+			if (t > 1)
+				return last->Value;
+
 			for (; ptr <= last; ptr++) {
-				if (ptr->Time > t) {
+				if (ptr->Time >= t) {
 					CurveEntry* prev = ptr - 1;
 					float tCalc = (t - prev->Time) / (ptr->Time - prev->Time);
 					return Math::lerp(prev->Value, ptr->Value, tCalc);
@@ -38,6 +44,7 @@ class AdaptiveCurve {
 			CurveEntry(const T& value, float time) : Value(value), Time(time) {
 			}
 		};
+
 		void __Generate(float tolerance = 0.1f) {
 			myEntries.push_back(CurveEntry(myCurveSolve(0.0f), 0.0f));
 			myEntries.push_back(CurveEntry(myCurveSolve(1.0f), 1.0f));
@@ -46,7 +53,7 @@ class AdaptiveCurve {
 		}
 
 		void __Resolve(int& t0Index, float t0, float t1, T p1, T p2, float tolerance = 0.1f) {
-			float tMid = t0 + (t1 - t0) / 2.0f;
+			float tMid = (t0 + t1) / 2.0f;
 			T pMid = myCurveSolve(tMid);
 
 			float dist1 = glm::distance(p1, pMid);

@@ -35,10 +35,10 @@
 
 #include "AdaptiveCurve.h"
 
-#include <sstream>
+#include "FileDialog.h"
+#include "TextureCollectionEditor.h"
 
-#include <filesystem>
-namespace fs = std::experimental::filesystem;
+#include <sstream>
 
 // Defines and Core variables
 #define FRAMES_PER_SECOND 60
@@ -67,25 +67,6 @@ ParticleEffect particleEffect;
 char inFileName[256];
 char outFileName[256];
 
-void relativitify(std::string& path) {
-	static std::string workingDir = fs::current_path().string();
-	std::string workingDirWorking = workingDir;
-
-	int start = 0;
-	int end = 0;
-	for (int ix = 0; ix <= workingDir.size(); ix++) {
-		if (workingDir[ix] == path[ix])
-			end = ix + 1;
-		else
-			break;
-	}
-	path.erase(path.begin() + start, path.begin() + end + 1);
-	workingDirWorking.erase(workingDirWorking.begin() + start, workingDirWorking.begin() + end);
-
-	if (workingDirWorking.size() > 0) {
-		throw("To be implemented");
-	}
-}
 
 struct EditorSettings {
 	ParticleLayerSettings  *ActiveEditLayer = nullptr;
@@ -95,185 +76,7 @@ struct EditorSettings {
 	float                   PlaybackSpeed = 100.0f;
 } Settings;
 
-enum FileDialogMode {
-	OpenFileMode = 0,
-	SaveFileMode = 1
-};
 
-struct FileDialog {
-	FileDialogMode Mode;
-	std::string    Filter;
-	bool           Show;
-	std::string    CurrentDirectory;
-	
-	int DrawDialog() {
-		int hasPicked = 0;
-
-		if (Show) {
-			if (CurrentDirectory == "")
-				CurrentDirectory = fs::current_path().string();
-
-			fs::directory_entry& myPath = fs::directory_entry(fs::current_path());
-
-			if (ImGui::Begin(Mode == OpenFileMode ? "Open File" : "Save File", &Show, ImGuiWindowFlags_AlwaysAutoResize)) {
-
-				ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-				ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.3f));
-				ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.4f));
-				ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-
-				ImGui::BeginChild((ImGuiID)0, ImVec2(200, 1));
-				ImGui::EndChild();
-				RenderDirectoryNode(myPath);
-
-				ImGui::Separator();
-
-				ImGui::Text("File: ");
-				ImGui::SameLine();
-				if (Mode == OpenFileMode) {
-					ImGui::Text(fs::path(mySelectedFile).filename().string().c_str());
-				}
-				else {
-					ImGui::InputText("", myBuffer, 255);
-				}
-				if (ImGui::ButtonEx(Mode == OpenFileMode ? "Open" : "Save")) {
-					if (Mode == SaveFileMode) {
-						std::string path = myBuffer;
-						fs::path path_t = fs::path(path);
-						if (!path_t.has_extension()) {
-							path = path + Filter;
-						}
-						else if (strcmp(path_t.extension().string().c_str(), Filter.c_str()) != 0) {
-							path = path_t.string() + Filter;
-						}
-						mySelectedFile = path;
-					}
-					hasPicked = 1;
-					Show = false;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel")) {
-					hasPicked = 2;
-					Show = false;
-					mySelectedFile = "";
-				}
-			
-				ImGui::PopStyleColor(4);
-
-				ImGui::End();
-			}
-		}
-
-		return hasPicked;
-	}
-
-	const std::string& GetFile() const {
-		return mySelectedFile;
-	}
-
-	private:
-		std::string mySelectedFile;
-		char        myBuffer[255];
-
-		void RenderDirectoryNode(const fs::directory_entry& path) {
-
-			for (auto &fPtr : fs::directory_iterator(path)) {
-				if (fPtr.status().type() != fs::file_type::directory) {
-					if (strcmp(fPtr.path().extension().string().c_str(), Filter.c_str()) == 0) {
-						if (ImGui::Button(fPtr.path().filename().string().c_str())) {
-							mySelectedFile = fPtr.path().string();
-							if (Mode == SaveFileMode)
-								memcpy(myBuffer, mySelectedFile.c_str(), mySelectedFile.size() + 1);
-						}
-					}
-				}
-				else {
-					if (ImGui::TreeNode(fPtr.path().filename().string().c_str())) {
-						RenderDirectoryNode(fPtr);
-						ImGui::TreePop();
-					}
-				}
-			}
-		}
-};
-
-struct TextureCollectionEditor {
-		bool IsVisible;
-		int  EditingTexture;
-
-		TextureCollectionEditor() {
-			myDialog.Mode = OpenFileMode;
-			myDialog.Filter = ".png";
-		}
-	
-		void Display() {
-			if (IsVisible) {
-				if (ImGui::Begin("Textures", &IsVisible, ImGuiWindowFlags_AlwaysAutoResize)) {
-					ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
-					ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
-
-					int count = 0;
-					for (int ix = 1; ix < 32; ix++) {
-						const Texture2D& tex = TextureCollection::Get(ix);
-						if (tex.id() != 0) {
-							count++;
-
-							if (ImGui::ImageButton((ImTextureID)&tex, ImVec2(100, 100))) {
-								EditingTexture = ix;
-								memcpy(myTexturePath, tex.FileName, 256);
-							}
-							if ((count % 3))
-								ImGui::SameLine();
-						}
-					}
-
-					if (ImGui::Button("+", ImVec2(108, 106))) {
-						myDialog.Show = true;
-					}
-
-					if (EditingTexture != 0) {
-						ImGui::Separator();
-
-						Texture2D& tex = TextureCollection::Get(EditingTexture);
-
-						ImGui::Text("ID: %i", EditingTexture);
-						ImGui::InputText("Name", tex.Name, 16);
-						ImGui::InputText("Path", tex.FileName, 256);
-						ImGui::SameLine();
-						if (ImGui::Button("Browse")) {
-							myDialog.Show = true;
-						}
-					}
-
-					ImGui::PopStyleColor(2);
-
-					ImGui::End();
-				}
-			}
-			else {
-				EditingTexture = 0;
-			}
-
-			if (myDialog.DrawDialog() == 1) {
-
-				for (int ix = 1; ix < 32; ix++) {
-					if (TextureCollection::Get(ix).id() == 0) {
-						std::string name = myDialog.GetFile();
-						relativitify(name);
-						TextureCollection::LoadTexture(ix, name.c_str());
-						Renderer::SetTexture(ix, TextureCollection::Get(ix).id());
-						break;
-					}
-				}
-
-			}
-		}
-
-	private:
-		char       myTextureName[16];
-		char       myTexturePath[256];
-		FileDialog myDialog;
-};
 
 FileDialog OpenFileDlg;
 FileDialog SaveFileDlg;
@@ -387,18 +190,17 @@ void applyForcesToParticleSystem(ParticleLayer* e, glm::vec3 target)
 }
 */
 
-struct CurveData {
-	static const int CONTROL_COUNT = 10;
+struct BezierCurve {
+	
+	glm::vec3 P0;
+	glm::vec3 T0;
+	glm::vec3 T1;
+	glm::vec3 P1;
 
-	ImVec2 Controls[10];
-
-	CurveData() {
-		Controls[0].x = -1;
+	glm::vec3 Resolve(float t) {
+		return Math::SolveBezier(P0, T0, T1, P1, t);
 	}
 
-	float Evaluate(float t) {
-		return ImGui::CurveValueSmooth(t, 10, Controls);
-	}
 };
 
 void DisplayEditablePointList(std::vector<glm::vec3> &list) {
@@ -434,7 +236,7 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 			}
 			SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
-			ImGui::DragFloat(" Radius", &data.Radius);
+			ImGui::DragFloat(" Force", &data.Force);
 		}
 		break;
 		case Flee: {
@@ -443,7 +245,7 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 			}
 			SeekFleeData& data = *reinterpret_cast<SeekFleeData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
-			ImGui::DragFloat(" Radius", &data.Radius);
+			ImGui::DragFloat(" Force", &data.Force);
 		}
 		break;
 		case Repel: {
@@ -452,7 +254,8 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 			}
 			MagnetData& data = *reinterpret_cast<MagnetData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
-			ImGui::DragFloat(" Point", &data.Force);
+			ImGui::DragFloat(" Radius", &data.Radius);
+			ImGui::DragFloat(" Force", &data.Force);
 		}
 		break;
 		case Attract: {
@@ -461,7 +264,8 @@ void DisplaySteeringBehaviour(SteeringBehaviour& behaviour) {
 			}
 			MagnetData& data = *reinterpret_cast<MagnetData*>(behaviour.MetaData);
 			ImGui::DragFloat3(" Point", &data.Point[0]);
-			ImGui::DragFloat(" Point", &data.Force);
+			ImGui::DragFloat(" Radius", &data.Radius);
+			ImGui::DragFloat(" Force", &data.Force);
 		}
 		break;
 		case Path: {
@@ -494,18 +298,18 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 			ImGui::EndChild();
 
 			if (ImGui::CollapsingHeader("Physics:")) {
-				ImGui::DragFloat3(" Position", &settings.Config.Position[0]);
 				ImGui::DragFloat3(" Gravity", &settings.Config.Gravity[0]);
 				ImGui::DragFloat3(" Velocity Radius", &settings.Config.VelocityRadius[0]);
 				ImGui::DragFloat3(" Velocity Offset", &settings.Config.VelocityOffset[0]);
-				ImGui::DragFloat2(" Angular Range", &settings.Config.AngularSpeedRange[0]);
 				ImGui::DragFloat2(" Velocity Range", &settings.Config.VelocityRange[0]);
+				ImGui::DragFloat2(" Angular Range", &settings.Config.AngularSpeedRange[0]);
 				ImGui::DragFloat2(" Mass Range", &settings.Config.MassRange[0], 0.1f, 0.01f, 1000.0f);
 			}
 
-			if (ImGui::CollapsingHeader("Emission:")) {
-				static CurveData emissionOverTime = CurveData();
-				ImGui::Curve("Emission", ImVec2(250, 150), CurveData::CONTROL_COUNT, emissionOverTime.Controls);
+			if (ImGui::CollapsingHeader("Emitter:")) {
+				ImGui::DragFloat3(" Position", &settings.Config.Position[0]);
+				//static CurveData emissionOverTime = CurveData();
+				//ImGui::Curve("Emission", ImVec2(250, 150), CurveData::CONTROL_COUNT, emissionOverTime.Controls);
 				ImGui::SliderFloat(" Emission Rate", &settings.Config.EmissionRate, 0, settings.Config.MaxParticles, "%.1f", 1.0f, 500);
 				ImGui::DragFloat(" Duration", &settings.Config.Duration);
 				ImGui::DragFloat2(" Life Range", &settings.Config.LifeRange[0]);
@@ -520,8 +324,6 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 					particleEffect.Layers[settings.Config.Index]->freeMemory();
 					particleEffect.Layers[settings.Config.Index]->initialize();
 				}
-
-				// TODO: textures
 			}
 
 			if (ImGui::CollapsingHeader("Visuals:")) {
@@ -570,15 +372,14 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 				}
 				ImGui::PopStyleColor(2);
 				ImGui::PopStyleVar(1);
-				static char label[23] = "                      ";
 
 				for (int ix = 0; ix < settings.Behaviours.size(); ix++) {
 					ImGui::Separator();
-					ImGui::PushID(ix);
-					int count = strlen(settings.Behaviours[ix].Name);
-					memcpy(label, settings.Behaviours[ix].Name, count);
-					memcpy(label + count, "###foo", 7);
-					if (ImGui::TreeNode(label)) {
+
+					static char* buffer = new char[BEHAVIOUR_NAME_SIZE + 12];
+					sprintf(buffer, "%s###bhv%u", settings.Behaviours[ix].Name, ix);
+
+					if (ImGui::TreeNode(buffer)) {
 						if (ImGui::Button("Remove")) {
 							settings.Behaviours.erase(settings.Behaviours.begin() + ix);
 							ix--;
@@ -590,7 +391,6 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 						DisplaySteeringBehaviour(settings.Behaviours[ix]);
 						ImGui::TreePop();
 					}
-					ImGui::PopID();
 				}
 			}
 
@@ -722,7 +522,7 @@ void DisplayCallbackFunction(void)
 	Renderer::ProjectionMatrix = glm::perspectiveFov(70.0f, (float)TTK::Graphics::ScreenWidth, (float)TTK::Graphics::ScreenHeight, 0.01f, 1000.0f);
 	Renderer::WorldTransform = glm::mat4(1.0f);
 
-	TTK::Graphics::DrawGrid(); 
+	TTK::Graphics::DrawGrid();
 
 	// perform physics calculations for each particle
 	if (Settings.IsPlaying)
@@ -732,14 +532,7 @@ void DisplayCallbackFunction(void)
 	particleEffect.Draw();
 
 	Renderer::Flush();
-
-	/*
-	for (int ix = 0; ix < curve.SampleCount() - 1; ix++) {
-		TTK::Graphics::DrawLine(glm::vec3(400, 400, 0) + curve.SampleAtIndex(ix).xyy * 30.0f, 
-			glm::vec3(400, 400, 0) + curve.SampleAtIndex(ix + 1).xyy * 30.0f, 1.0f, glm::vec4(1.0f));
-	}
-	*/
-
+	
 	// You must call this prior to using any imgui functions
 	TTK::Graphics::StartUI(windowWidth, windowHeight);
 
@@ -802,10 +595,31 @@ void DisplayCallbackFunction(void)
 	// Display the load effect path
 	if (ImGui::Begin("Effect Editor", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
 
-		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Button, ImVec4(0.328f, 0.328f, 0.33f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_ButtonActive, ImVec4(0.402f, 0.402f, 0.402f, 1.0f));
+		/*
+		ImGui::BeginChild("Foo", ImVec2(100, 100));
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImRect bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(100, 100));
+		ImGui::ItemSize(bb);
+		if (!ImGui::ItemAdd(bb, NULL))
+			std::cout << "-_-" << std::endl;
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-		ImGui::PopStyleColor(2);
+		for (int ix = 0; ix < 100; ix++) {
+			glm::vec2 pos0 = 
+				//Math::SolveBezier(glm::vec2(0.0f, 0.0f), glm::vec2(-1.0f, 1.0f), glm::vec2(1.5f, 0.0f), glm::vec2(1.0f, 1.0f), (1.0f / 10.0f) * ix)
+				curve.Solve((1.0f / 100.0f) * ix) 
+				* 50.0f + glm::vec2(50.0f);
+			glm::vec2 pos1 =
+				//Math::SolveBezier(glm::vec2(0.0f, 0.0f), glm::vec2(-1.0f, 1.0f), glm::vec2(1.5f, 0.0f), glm::vec2(1.0f, 1.0f), (1.0f / 10.0f) * (ix + 1))
+				curve.Solve((1.0f / 100.0f) * (ix + 1)) 
+				* 50.0f + glm::vec2(50.0f);
+			uint32_t col = 0xFFFFFFFF;
+			drawList->AddLine(
+				ImVec2(bb.Min.x + pos0.x, bb.Max.y - pos0.y), 
+				ImVec2(bb.Min.x + pos1.x, bb.Max.y - pos1.y), col, 1.0f);
+		}
+		ImGui::EndChild();
+		*/
 		
 		ImGui::Separator();
 
@@ -1049,10 +863,10 @@ int main(int argc, char **argv)
 	glutTimerFunc(1, TimerCallbackFunction, 0);
 
 	curve = AdaptiveCurve<glm::vec2>([](float t) {
-		return glm::vec2(sin(t * 3.14), cos(t * 3.14));
+		return Math::SolveBezier(glm::vec2(0.0f, 0.0f), glm::vec2(-1.0f, 1.0f), glm::vec2(1.5f, 0.0f), glm::vec2(1.0f, 1.0f), t);
 	});
 
-	curve.Bake(0.0001f);
+	curve.Bake(0.000001f);
 
 	glm::vec2 t = curve.Solve(0.3f);
 
