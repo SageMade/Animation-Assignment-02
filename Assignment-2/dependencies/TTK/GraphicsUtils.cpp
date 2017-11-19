@@ -33,6 +33,8 @@ void TTK::Graphics::InitImGUI()
 	io.KeyMap[ImGuiKey_Tab]        = '\t';
 	io.KeyMap[ImGuiKey_Backspace]  = '\b';
 	io.KeyMap[ImGuiKey_Delete]     = 127;
+
+	io.KeysDown[128 + 114] = false;
 }
 
 void TTK::Graphics::StartUI(int windowWidth, int windowHeight)
@@ -80,7 +82,6 @@ void TTK::Graphics::EnableAdditiveBlend() {
 
 void TTK::Graphics::BeginPointSprites(const Texture2D& texture) {
 	glDisable(GL_LIGHTING);
-	glEnable(GL_TEXTURE);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texture.id());
 	glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
@@ -272,7 +273,7 @@ void TTK::Graphics::SetCameraMode2D(int windowWidth, int windowHeight)
 	glLoadIdentity();
 
 	glViewport(0, 0, windowWidth, windowHeight);
-	gluPerspective(60.0f, (float)windowWidth / (float)windowHeight, 0.001f, 10000.0f);
+	gluPerspective(70.0f, (float)windowWidth / (float)windowHeight, 0.01f, 1000.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 }
@@ -292,11 +293,40 @@ void TTK::Graphics::ClearScreen()
 void TTK::Graphics::DrawGrid()
 {
 	glPushMatrix();
-	glScalef(0.1f, 0.1f, 0.1f);
-	glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+	//glScalef(0.1f, 0.1f, 0.1f);
+	//glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+	EnableAlphaBlend();
 
 	glBegin(GL_LINES);
 
+	for (int ix = -100; ix <= 100; ix++) {
+		if (ix % 10 == 0) {
+			glLineWidth(2.0);
+			glColor3f(0, 0, 1);
+		}
+		else {
+			glLineWidth(2.0);
+			glColor3f(0, 0, 0);
+		}
+
+		glVertex3f(ix, 0, -100);
+		glVertex3f(ix, 0,  100);
+	}
+	for (int iy = -100; iy <= 100; iy++) {
+		if (iy % 10 == 0) {
+			glLineWidth(2.0);
+			glColor3f(1, 0, 0);
+		}
+		else {
+			glLineWidth(2.0);
+			glColor3f(0, 0, 0);
+		}
+
+		glVertex3f(-100, 0, iy);
+		glVertex3f( 100, 0, iy);
+	}
+
+	/*
 	float tempX = -100, tempY = 100, tempZ = 0;
 	int xLines = 0, Ylines = 0, Zlines = 0;
 	for (int i = 0; i <= 40; i++)
@@ -310,7 +340,7 @@ void TTK::Graphics::DrawGrid()
 			}
 			else
 			{
-				glLineWidth(0.01);
+				glLineWidth(1);
 				glColor3f(0, 0, 0);
 			}
 			tempY = 100;
@@ -340,6 +370,7 @@ void TTK::Graphics::DrawGrid()
 			tempY += 10;
 		}
 	}
+	*/
 
 	// 	glColor3f(0, 1, 0);
 	// 	glVertex3f(0, 0.0f, 0.0f);

@@ -127,6 +127,7 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 					emitted++;
 				}
 			}
+			// TODO: apply behaviours
 			
 			// Update physics
 			particle->force += Settings.Config.Gravity;

@@ -310,9 +310,7 @@ void InitializeScene()
 	particleEffect.AddLayer(settings);
 
 	Settings.EffectSettings.Layers.push_back(particleEffect.Layers.back()->Settings);
-
-	particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
-		
+			
 	//std::fstream stream;
 	//stream.open("test.dat");
 	//particleEffect.WriteToFile(stream);
@@ -333,8 +331,6 @@ void InitializeScene()
 
 // These values are controlled by imgui
 bool applySeekingForce = true;
-bool followMouse = false;
-bool prevFollowMouse = true;
 float seekingForceScale    = 100.0f;
 float minSeekingForceScale = -200.0f;
 float maxSeekingForceScale = 200.0f; 
@@ -369,9 +365,6 @@ void LoadEffect(const char* fileName) {
 			for (int ix = 0; ix < particleEffect.Layers.size(); ix++) {
 				Settings.EffectSettings.Layers.push_back(particleEffect.Layers[ix]->Settings);
 			}
-
-			if (!followMouse)
-				particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
 		}
 		else {
 			std::cout << "Failed to read file" << std::endl;
@@ -715,20 +708,43 @@ void DisplayEffectConfig(ParticleEffectSettings& settings) {
 	}
 }
 
-glm::vec3 clearColor = glm::vec3();
+TTK::Camera camera;
+glm::vec3 clearColor = glm::vec3(0.5f);
 
 // This is where we draw stuff
 void DisplayCallbackFunction(void)
 {
+	ImGuiIO& io = ImGui::GetIO();
+
+	if (io.KeysDown['w'])
+		camera.moveForward();
+	if (io.KeysDown['s'])
+		camera.moveBackward();
+	if (io.KeysDown['a'])
+		camera.moveRight();
+	if (io.KeysDown['d'])
+		camera.moveLeft();
+	if (io.KeysDown[128 + 114])
+		camera.moveDown();
+	if (io.KeysDown[' '])
+		camera.moveUp();
+	
 	// Set up scene
 	TTK::Graphics::SetBackgroundColour(clearColor.x, clearColor.y, clearColor.z);
 	TTK::Graphics::ClearScreen();
-	TTK::Graphics::SetCameraMode2D(windowWidth, windowHeight);
+	TTK::Graphics::SetCameraMode3D(TTK::Graphics::ScreenWidth, TTK::Graphics::ScreenHeight);
+	camera.update();
+
+	Renderer::ViewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.forwardVector, camera.upVector);
+	Renderer::ProjectionMatrix = glm::perspectiveFov(70.0f, (float)TTK::Graphics::ScreenWidth, (float)TTK::Graphics::ScreenHeight, 0.01f, 1000.0f);
+	Renderer::WorldTransform = glm::mat4(1.0f);
 
 	// Apply forces on the particle system
     //if (applySeekingForce)
 	//	applyForcesToParticleSystem(&emitter, glm::vec3(windowHeight*0.5f, windowWidth*0.5, 0.0f));
 	
+	TTK::Graphics::DrawGrid();
+
 	// perform physics calculations for each particle
 	if (Settings.IsPlaying)
 		particleEffect.Update(deltaTime * Settings.PlaybackSpeed * 0.01);
@@ -764,9 +780,6 @@ void DisplayCallbackFunction(void)
 				Settings.EffectSettings = ParticleEffectSettings();
 				particleEffect.ReplaceSettings(Settings.EffectSettings);
 				Settings.ActiveEditLayer = nullptr;
-
-				if (!followMouse)
-					particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
 			}
 			ImGui::EndMenu();
 		}
@@ -799,15 +812,7 @@ void DisplayCallbackFunction(void)
 			if (ImGui::Button("Restart")) {
 				particleEffect.Restart();
 			}
-			ImGui::SliderFloat("Playback Speed", &Settings.PlaybackSpeed, 0.0f, 200.0f, "%.2f%%", 1.0f, 100.0f);
-
-			ImGui::Checkbox("Follow Mouse", &followMouse);
-			ImGui::DragFloat3("Effect Pos", &particleEffect.Origin[0]);
-
-			if (!followMouse && prevFollowMouse)
-				particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
-
-			prevFollowMouse = followMouse;
+			ImGui::SliderFloat("Playback Speed", &Settings.PlaybackSpeed, 0.0f, 200.0f, "%.2f%%", 1.0f, 100.0f);			
 		}
 
 		/*
@@ -923,15 +928,12 @@ void WindowReshapeCallbackFunction(int w, int h)
 
 	TTK::Graphics::ScreenWidth = w;
 	TTK::Graphics::ScreenHeight = h;
-
-	if (!followMouse)
-		particleEffect.Origin = glm::vec3(TTK::Graphics::ScreenWidth / 2.0f, TTK::Graphics::ScreenHeight / 2.0f, 0.0f);
-
+	
 	particleEffect.ResizeFbo(TTK::Graphics::ScreenWidth, TTK::Graphics::ScreenHeight);
 
 	//Renderer::WorldTransform = glm::translate(glm::vec3(0, 0, 0.5f));
-	Renderer::ProjectionMatrix = glm::orthoLH(0.0f, (float)TTK::Graphics::ScreenWidth, 0.0f, (float)TTK::Graphics::ScreenHeight, 0.0f, 1000.0f);
-	//Renderer::ProjectionMatrix = glm::perspectiveFov(glm::radians(70.0f), (float)TTK::Graphics::ScreenWidth, (float)TTK::Graphics::ScreenHeight, 0.1f, 1000.0f);
+	//Renderer::ProjectionMatrix = glm::orthoLH(0.0f, (float)TTK::Graphics::ScreenWidth, 0.0f, (float)TTK::Graphics::ScreenHeight, 0.0f, 1000.0f);
+	Renderer::ProjectionMatrix = glm::perspectiveFov(glm::radians(70.0f), (float)TTK::Graphics::ScreenWidth, (float)TTK::Graphics::ScreenHeight, 0.1f, 1000.0f);
 }
 
 // This is called when a mouse button is clicked
@@ -997,9 +999,6 @@ void MousePassiveMotionCallbackFunction(int x, int y)
 
 	mousePositionFlipped.x = x;
 	mousePositionFlipped.y = windowHeight - y;
-
-	if (followMouse)
-		particleEffect.Origin = mousePositionFlipped;
 }
 
 /* function main()
@@ -1052,6 +1051,10 @@ int main(int argc, char **argv)
 	curve.Bake(0.0001f);
 
 	glm::vec2 t = curve.Solve(0.3f);
+
+	camera = TTK::Camera();
+	camera.cameraPosition = glm::vec3(5.0f);
+	camera.forwardVector = glm::normalize(glm::vec3(0.0f) - glm::vec3(5.0f));
 
 	// Init GL
 	glEnable(GL_DEPTH_TEST);

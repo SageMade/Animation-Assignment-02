@@ -39,6 +39,7 @@ void Renderer::Init() {
 
 	const char *vertex_shader = R"LIT(#version 410
 		uniform mat4 xWorld;
+        uniform mat4 xView;
 		struct VsVert {
 			vec4  Color;
 			float Size;
@@ -56,7 +57,7 @@ void Renderer::Init() {
 			VsToGs.TexId = TexId;
 			VsToGs.Size = Size;
             VsToGs.Angle = Angle;
-			gl_Position = xWorld * vec4(Position, 1);
+			gl_Position = xView * xWorld * vec4(Position, 1);
 		})LIT";
 
 	const char* geometry_shader = R"LIT(#version 410
@@ -169,7 +170,8 @@ void Renderer::Init() {
 		in GsVert GsToFS;
 		out vec4 FinalColor;
 		void main() {
-			FinalColor = GsToFS.Color * texture2D(xSamplers[int(GsToFS.TexId)], GsToFS.TexCoord);
+            // The 0.5 offset to tex ID is to avoid rounding errors on some cards that would cause textureID to flicker
+			FinalColor = GsToFS.Color * texture2D(xSamplers[int(GsToFS.TexId + 0.5f)], GsToFS.TexCoord);
 		})LIT";
 
 	GLenum error = glGetError();
@@ -363,17 +365,19 @@ void Renderer::Submit(const glm::vec3 &pos, const glm::vec4& color, const float 
 void Renderer::Flush() {
 
 	GLint prevVbo{ 0 }, prevVao{ 0 }, prevShader{ 0 }, prevTexSlot{ 0 };
-	GLboolean tex2DEnabled{ false }, texEnabled{ false };
+	GLboolean tex2DEnabled{ false }, depthMask{ true };
 	GLint prevTexBindings[RENDERER_MAX_TEXTURES];
 	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prevVbo);
 	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVao);
 	glGetIntegerv(GL_CURRENT_PROGRAM, &prevShader);
 	glGetIntegerv(GL_ACTIVE_TEXTURE, &prevTexSlot);
 	glGetBooleanv(GL_TEXTURE_2D, &tex2DEnabled);
-	glGetBooleanv(GL_TEXTURE, &texEnabled);
-
+	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+	
+	glDepthMask(GL_FALSE);
 	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_TEXTURE);
+	glEnable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	// Buffer orphaning technique, most of the time this will get the same buffer, also should be pretty fast
 	glBindBuffer(GL_ARRAY_BUFFER, myPrimitiveBuffer);
@@ -408,7 +412,8 @@ void Renderer::Flush() {
 	glActiveTexture(prevTexSlot);
 
 	if (!tex2DEnabled) glDisable(GL_TEXTURE_2D);
-	if (!texEnabled) glDisable(GL_TEXTURE);
+
+	glDepthMask(depthMask);
 
 	myActiveParticleCount = 0;
 }
@@ -416,17 +421,15 @@ void Renderer::Flush() {
 void Renderer::FullscreenQuad(const GLuint texHandle) {
 
 	GLint prevVbo{ 0 }, prevVao{ 0 }, prevShader{ 0 }, prevTexSlot{ 0 };
-	GLboolean tex2DEnabled{ false }, texEnabled{ false };
+	GLboolean tex2DEnabled{ false };
 	GLint prevTexBinding;
 	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prevVbo);
 	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVao);
 	glGetIntegerv(GL_CURRENT_PROGRAM, &prevShader);
 	glGetIntegerv(GL_ACTIVE_TEXTURE, &prevTexSlot);
 	glGetBooleanv(GL_TEXTURE_2D, &tex2DEnabled);
-	glGetBooleanv(GL_TEXTURE, &texEnabled);
 
 	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_TEXTURE);
 
 	glBindBuffer(GL_ARRAY_BUFFER, myScreenSpaceBuffer);
 
@@ -450,7 +453,6 @@ void Renderer::FullscreenQuad(const GLuint texHandle) {
 	glActiveTexture(prevTexSlot);
 
 	if (!tex2DEnabled) glDisable(GL_TEXTURE_2D);
-	if (!texEnabled) glDisable(GL_TEXTURE);
 }
 
 void Renderer::SetTexture(const uint8_t slot, const uint32_t handle) {
