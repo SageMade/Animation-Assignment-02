@@ -133,7 +133,7 @@ void ParticleEffect::Draw() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//glDisable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_DST_ALPHA);
+	TTK::Graphics::EnableAlphaBlend();
 	Renderer::FullscreenQuad(myRenderTexture);
 
 #endif

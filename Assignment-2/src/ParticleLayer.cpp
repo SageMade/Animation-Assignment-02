@@ -130,7 +130,7 @@ void ParticleLayer::update(float dt, glm::vec3 origin)
 							{
 								particle->position = Settings.Config.Position + origin;
 								glm::vec3 norm = glm::normalize(glm::vec3(RAND_RNG, RAND_RNG, RAND_RNG));
-								particle->position += norm * Settings.Config.BoundsMeta;
+								particle->position += norm * Settings.Config.BoundsMeta * RAND_T;
 							}
 							break;
 						case EmitterType::Line:
