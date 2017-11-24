@@ -1,4 +1,9 @@
-
+/*
+	Authors:
+	Shawn M.          100412327
+	Paul Puig         100656910
+	Stephen Richards  100458273
+*/
 
 #include <iostream> // for std::cout
 #include <glm\gtc\random.hpp> // for glm::linearRand

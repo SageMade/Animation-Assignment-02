@@ -88,11 +88,13 @@
     <ClCompile Include="src\Renderer.cpp">
       <Filter>Assignment\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\FileHelpers.cpp" />
     <ClCompile Include="src\SteeringBehaviour.cpp">
       <Filter>Assignment\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\EditorSettings.cpp">
+      <Filter>Assignment\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FileHelpers.cpp">
       <Filter>Assignment\Source Files</Filter>
     </ClCompile>
   </ItemGroup>

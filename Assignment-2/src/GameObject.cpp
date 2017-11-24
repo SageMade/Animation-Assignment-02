@@ -1,5 +1,9 @@
-// Shaun McKinnon - 100642799 //
-
+/*
+	Authors:
+	Shawn M.          100412327
+	Paul Puig         100656910
+	Stephen Richards  100458273
+*/
 #include "GameObject.h"
 #include <iostream>
 #include "TTK\GraphicsUtils.h"

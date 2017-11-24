@@ -6,6 +6,7 @@
 // This header contains utility functions for drawing.
 //
 // Michael Gharbharan 2017
+// Modified by Shawn M.
 //
 //////////////////////////////////////////////////////////////////////////
 

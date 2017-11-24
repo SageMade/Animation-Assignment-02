@@ -1,3 +1,10 @@
+/*
+	Authors:
+	Shawn M.          100412327
+	Paul Puig         100656910
+	Stephen Richards  100458273
+*/
+
 #include "AnimationMath.h"
 
 float Math::distSquared(glm::vec2 a, glm::vec2 b) {

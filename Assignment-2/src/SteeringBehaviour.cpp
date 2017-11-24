@@ -1,3 +1,10 @@
+/*
+	Authors:
+	Shawn M.          100412327
+	Paul Puig         100656910
+	Stephen Richards  100458273
+*/
+
 #include "SteeringBehaviour.h"
 #include "FileHelpers.h"
 #include "AnimationMath.h"
@@ -17,7 +24,8 @@ void SteeringBehaviour::WriteToFile(std::fstream & stream) {
 	}
 	else {
 		PathData data = *GetData<PathData>();
-		Write(stream, data.LoopMode);
+		Write(stream, (uint32_t)data.LoopMode);
+		Write(stream, data.NodeRadius);
 		uint32_t count = data.Points.size();
 		Write(stream, count);
 		for (int ix = 0; ix < count; ix++) {
@@ -56,7 +64,10 @@ SteeringBehaviour SteeringBehaviour::ReadFromFile(std::fstream & stream)
 	else {
 		uint32_t count = 0;
 		PathData *data = new PathData();
-		Read(stream, data->LoopMode);
+		uint32_t loopMode{ 0 };
+		Read(stream, loopMode);
+		data->LoopMode = (LoopType)loopMode;
+		Read(stream, data->NodeRadius);
 		Read(stream, count);
 		for (int ix = 0; ix < count; ix++) {
 			glm::vec3 point = glm::vec3();

@@ -213,7 +213,7 @@ void Texture2D::readFromFile(std::fstream & stream) {
 	else {
 		size_t stringSize = 0;
 		Read(stream, stringSize);
-		char* data = new char[stringSize];
+		char* data = new char[stringSize]; 
 		Read(stream, data, stringSize);
 		memcpy(FileName, data, stringSize);
 		loadTextureFromFile(FileName);

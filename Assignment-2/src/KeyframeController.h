@@ -1,12 +1,11 @@
 /*
 	Authors:
-	Shawn M.   - 100412327
-	Shaun M.   - 100642799
-	Daniel M.  - 100552012
-	Stephen R. - 100458273
-	Paul P.    - 100656910
-	Selina D.  - 100558926
+	Shawn M.          100412327
+	Paul Puig         100656910
+	Stephen Richards  100458273
 */
+
+
 #pragma once
 
 #include <vector>

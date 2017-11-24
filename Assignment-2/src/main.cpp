@@ -1,3 +1,9 @@
+/*
+	Authors:
+	Shawn M.          100412327
+	Paul Puig         100656910
+	Stephen Richards  100458273
+*/
 
 #define GLEW_STATIC
 #include "glew/glew.h"
@@ -379,7 +385,6 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 							settings.Behaviours.erase(settings.Behaviours.begin() + ix);
 							ix--;
 							ImGui::TreePop();
-							ImGui::PopID();
 							continue;
 						}
 						ImGui::Separator();
@@ -400,6 +405,7 @@ void DisplayLayerConfig(ParticleLayerSettings *settingsPtr) {
 void DisplayEffectConfig(ParticleEffectSettings& settings) {
 	ImGui::Text("Effect Config");
 	ImGui::InputText(" Name", particleEffect.Name, 32);
+	ImGui::DragFloat3("Position", &particleEffect.Origin.x, 0.1f);
 	ImGui::Separator();
 	ImGui::Text("Layers: ");
 	ImGui::SameLine();
@@ -616,7 +622,7 @@ void DisplayCallbackFunction(void)
 		ImGui::EndChild();
 		*/
 		
-		ImGui::Separator();
+		ImGui::Separator(); 
 
 		// Editor controls
 		if (ImGui::CollapsingHeader("Editor Controls")) {
